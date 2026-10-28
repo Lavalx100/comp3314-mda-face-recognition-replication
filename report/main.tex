@@ -1,0 +1,53 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.72in]{geometry}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{natbib}
+\title{A Partial Reproduction of Multilinear Discriminant Analysis for Face Recognition}
+\author{COMP3314 Group 27}
+\date{Fall 2026}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Yan et al. proposed Multilinear Discriminant Analysis (MDA), which learns interrelated discriminative projections along the modes of an image tensor. We compare Eigenfaces PCA, Fisherfaces LDA, MDA/2-1, and MDA/2-2 on the 64$\times$64 Olivetti copy distributed by scikit-learn. Across five matched stratified splits, MDA/2-1 is strongest with two gallery images per identity, while Fisherfaces leads at three to five. MDA/2-2 improves with gallery size but does not lead in our fixed 6$\times$6 configuration. A projection-normalization sensitivity analysis substantially changes 1-nearest-neighbour accuracy. Because image resolution, dimensions, and split protocol differ from the paper, these results are a partial reproduction rather than an exact replication.
+\end{abstract}
+
+\section{Problem and motivation}
+Vector-based PCA and LDA flatten an image into one long feature vector. This discards the explicit row/column organization and can produce a high-dimensional problem when labeled training images are scarce. MDA represents an image as a matrix and alternately optimizes discriminative projections along its modes. The paper's discriminant tensor criterion seeks between-identity separation while reducing within-identity variation \citep{Yan2007MDA}. This study asks whether that structure improves recognition over vector-based baselines under a common split and classifier.
+
+\section{Methods}
+We use the scikit-learn Olivetti loader: 400 grayscale images from 40 identities, 10 images each, resized to 64$\times$64. Images are equalized individually. For each identity, 2, 3, 4, or 5 images are sampled for training and the rest are probes. Five deterministic stratified splits are generated per gallery size; all methods share each split. Projections are learned only from training images.
+
+The compared representations are Eigenfaces PCA (36 components), Fisherfaces LDA (PCA pre-reduction and regularized LDA), MDA/2-1 (one learned image mode; the other remains identity), and MDA/2-2 (alternating row/column projections with six output features per mode). All use Euclidean 1-nearest-neighbour. We report mean accuracy and sample standard deviation over the five splits. The primary MDA axes use unit-L2 normalization; a same-seed sensitivity run uses within-scatter normalization.
+
+\section{Results}
+\begin{table}[h]
+\centering
+\caption{Group-computed probe accuracy (mean $\pm$ sample SD, percent). These are not paper Table I values.}
+\begin{tabular}{crrrr}
+\toprule
+Train/person & PCA & Fisherfaces & MDA/2-1 & MDA/2-2 \\
+\midrule
+2 & 67.1 $\pm$ 1.9 & 71.8 $\pm$ 2.8 & 73.5 $\pm$ 2.9 & 43.3 $\pm$ 4.8 \\
+3 & 74.5 $\pm$ 3.0 & 85.1 $\pm$ 3.2 & 83.7 $\pm$ 1.0 & 67.4 $\pm$ 3.0 \\
+4 & 81.3 $\pm$ 0.8 & 90.8 $\pm$ 2.2 & 87.1 $\pm$ 2.1 & 83.5 $\pm$ 1.4 \\
+5 & 84.0 $\pm$ 3.6 & 93.2 $\pm$ 1.2 & 89.8 $\pm$ 2.3 & 88.3 $\pm$ 2.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Accuracy generally rises with gallery size. MDA/2-1 leads at two training images per identity, whereas Fisherfaces leads at three to five. MDA/2-2 improves from 43.3\% to 88.3\% but does not lead in this configuration. On the same two-image splits, changing from unit-L2 to within-scatter normalization changes Fisherfaces from 71.8\% to 29.0\% and MDA/2-2 from 43.3\% to 19.9\%. Since Euclidean 1-NN is scale-sensitive, the result depends on the feature convention.
+
+\section{Critical analysis and limitations}
+Shared partitions and classifier improve fairness, and training-only fitting avoids test leakage. However, five repeats are too few for a stable ranking; fixed feature dimensions are not nested-validation selected; and the 64$\times$64 images differ from original ORL resolution (92$\times$112). The paper reports best accuracies across its configurations, while we report means across repeated random splits. Consequently, direct numerical equality is neither expected nor claimed. The sensitivity result also shows that a representation and its distance metric must be considered together. A stronger follow-up should use at least 30 matched splits, paired uncertainty analysis, and paper-faithful source data and settings if permitted.
+
+\section{Conclusion}
+This partial reproduction does not show a universal MDA advantage. Under the chosen settings, one-mode MDA is competitive at the smallest gallery size, Fisherfaces is strongest at larger sizes, and two-mode MDA improves with more data without leading. Our contribution is a transparent comparison with preserved split-level results and an explicit scaling caveat.
+
+\section*{Reproducibility and attribution}
+Code, environment versions, protocol, raw scores, summaries, and sensitivity outputs are included in the repository. The dataset is loaded through scikit-learn; credit AT\&T Laboratories Cambridge. No face images are redistributed. See \url{https://scikit-learn.org/stable/datasets/real_world.html#olivetti-faces-dataset} and \citep{Yan2007MDA}.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+\end{document}

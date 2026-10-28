@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "Cite the original MDA paper and identify all group measurements as a partial reproduction."
+title: "COMP3314 Group 27: MDA Face-Recognition Replication"
+version: 0.1.0
+references:
+  - type: article
+    title: "Multilinear Discriminant Analysis for Face Recognition"
+    authors:
+      - family-names: Yan
+        given-names: Shuicheng
+      - family-names: Xu
+        given-names: Dong
+      - family-names: Yang
+        given-names: Qiang
+      - family-names: Zhang
+        given-names: Lei
+      - family-names: Tang
+        given-names: Xiaoou
+      - family-names: Zhang
+        given-names: Hong-Jiang
+    journal: IEEE Transactions on Image Processing
+    volume: 16
+    issue: 1
+    start: 212
+    end: 220
+    year: 2007
+    doi: 10.1109/TIP.2006.884929

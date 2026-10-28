@@ -1,0 +1,167 @@
+{
+  "paper": "Yan et al., Multilinear Discriminant Analysis for Face Recognition (IEEE TIP, 2007)",
+  "paper_url": "https://mmlab.ie.cuhk.edu.hk/archive/2007/IP07_face02.pdf",
+  "dataset": "Olivetti faces (AT&T ORL copy fetched by scikit-learn)",
+  "images": 400,
+  "identities": 40,
+  "image_shape": [
+    64,
+    64
+  ],
+  "original_orl_shape_in_paper": [
+    112,
+    92
+  ],
+  "protocol": {
+    "train_images_per_identity": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "repeated_stratified_splits": 5,
+    "seed_rule": "base seed + 1000 * train_images_per_identity + repeat_index",
+    "classification": "Euclidean 1-nearest-neighbour in the learned feature space",
+    "preprocessing": "Per-image 8-bit histogram equalization, matching the paper's stated preprocessing; scikit-learn 64x64 images are used. No test data are used to fit projections."
+  },
+  "models": [
+    {
+      "name": "Eigenfaces PCA",
+      "feature_dimensions": 36
+    },
+    {
+      "name": "Fisherfaces LDA",
+      "feature_dimensions": "up to 36 after PCA pre-reduction"
+    },
+    {
+      "name": "MDA/2-1",
+      "feature_dimensions": "6 x 64"
+    },
+    {
+      "name": "MDA/2-2",
+      "feature_dimensions": "6 x 6"
+    }
+  ],
+  "mda": {
+    "initialization": "identity projections, as in the paper's algorithm figure",
+    "max_iterations": 10,
+    "relative_objective_tolerance": 0.0001,
+    "ridge_for_singular_scatter": 1e-06,
+    "projection_normalization": "within_scatter"
+  },
+  "results_status": "Group-computed result; partial reproduction, not a direct reproduction of the paper's original preprocessing or best-tuned table.",
+  "summary": [
+    {
+      "train_per_class": 2,
+      "method": "Eigenfaces PCA",
+      "repeats": 5,
+      "mean_accuracy": 0.670625,
+      "std_accuracy": 0.018697844127064513
+    },
+    {
+      "train_per_class": 2,
+      "method": "Fisherfaces LDA",
+      "repeats": 5,
+      "mean_accuracy": 0.29,
+      "std_accuracy": 0.12014802068698428
+    },
+    {
+      "train_per_class": 2,
+      "method": "MDA/2-1",
+      "repeats": 5,
+      "mean_accuracy": 0.735625,
+      "std_accuracy": 0.030666426063367752
+    },
+    {
+      "train_per_class": 2,
+      "method": "MDA/2-2",
+      "repeats": 5,
+      "mean_accuracy": 0.199375,
+      "std_accuracy": 0.09373437369769962
+    },
+    {
+      "train_per_class": 3,
+      "method": "Eigenfaces PCA",
+      "repeats": 5,
+      "mean_accuracy": 0.745,
+      "std_accuracy": 0.03005097709708945
+    },
+    {
+      "train_per_class": 3,
+      "method": "Fisherfaces LDA",
+      "repeats": 5,
+      "mean_accuracy": 0.32285714285714284,
+      "std_accuracy": 0.0993794521528675
+    },
+    {
+      "train_per_class": 3,
+      "method": "MDA/2-1",
+      "repeats": 5,
+      "mean_accuracy": 0.8428571428571429,
+      "std_accuracy": 0.01262690680690259
+    },
+    {
+      "train_per_class": 3,
+      "method": "MDA/2-2",
+      "repeats": 5,
+      "mean_accuracy": 0.6385714285714286,
+      "std_accuracy": 0.039560725731565646
+    },
+    {
+      "train_per_class": 4,
+      "method": "Eigenfaces PCA",
+      "repeats": 5,
+      "mean_accuracy": 0.8133333333333335,
+      "std_accuracy": 0.008014743359029698
+    },
+    {
+      "train_per_class": 4,
+      "method": "Fisherfaces LDA",
+      "repeats": 5,
+      "mean_accuracy": 0.86,
+      "std_accuracy": 0.022553947671207247
+    },
+    {
+      "train_per_class": 4,
+      "method": "MDA/2-1",
+      "repeats": 5,
+      "mean_accuracy": 0.8816666666666666,
+      "std_accuracy": 0.02074983266331452
+    },
+    {
+      "train_per_class": 4,
+      "method": "MDA/2-2",
+      "repeats": 5,
+      "mean_accuracy": 0.8008333333333333,
+      "std_accuracy": 0.03351512925365034
+    },
+    {
+      "train_per_class": 5,
+      "method": "Eigenfaces PCA",
+      "repeats": 5,
+      "mean_accuracy": 0.8400000000000001,
+      "std_accuracy": 0.03588175023601831
+    },
+    {
+      "train_per_class": 5,
+      "method": "Fisherfaces LDA",
+      "repeats": 5,
+      "mean_accuracy": 0.9259999999999999,
+      "std_accuracy": 0.011401754250991342
+    },
+    {
+      "train_per_class": 5,
+      "method": "MDA/2-1",
+      "repeats": 5,
+      "mean_accuracy": 0.905,
+      "std_accuracy": 0.014577379737113264
+    },
+    {
+      "train_per_class": 5,
+      "method": "MDA/2-2",
+      "repeats": 5,
+      "mean_accuracy": 0.8700000000000001,
+      "std_accuracy": 0.040311288741492785
+    }
+  ]
+}
