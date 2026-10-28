@@ -10,9 +10,9 @@ Aim for 8–9 concise slides, one key point per slide. Everyone should understan
 | 2:35–3:25 | Course links | PCA, LDA, generalized eigenvectors, nearest neighbours |
 | 3:25–4:20 | Our protocol | Dataset, gallery counts, matched repeated splits, no test-fit leakage |
 | 4:20–5:20 | Four methods | PCA / Fisherfaces / MDA-2-1 / MDA-2-2 and fixed dimensions |
-| 5:20–6:25 | Results | Accuracy-vs-gallery chart and group mean±SD table; label as group-produced |
-| 6:25–7:25 | Critical analysis | Scaling sensitivity, 64×64 vs original, five-repeat uncertainty |
-| 7:25–8:30 | Conclusion / extension | Honest partial-reproduction claim; 30+ paired splits and validation-tuned dimensions |
+| 5:20–6:25 | Results | Accuracy-vs-gallery chart and 30-split group mean±SD table; label as group-produced |
+| 6:25–7:25 | Critical analysis | Scaling sensitivity, 64×64 vs original, conditional paired bootstrap ranges |
+| 7:25–8:30 | Conclusion / extension | Honest partial-reproduction claim; original-resolution data and validation-tuned dimensions |
 | 8:30–9:00 | Takeaway | One-sentence team insight; transition to Q&A |
 
 ## Q&A rehearsal prompts
@@ -21,7 +21,8 @@ Aim for 8–9 concise slides, one key point per slide. Everyone should understan
 - Did test data influence projections? No; every projection was fit on training examples only.
 - Why do our numbers differ from the article? Resolution, fixed dimensions, split aggregation, and scaling choices differ.
 - Does this disprove MDA? No; it is a small, implementation-specific partial reproduction.
-- What would improve confidence? More matched splits, paired uncertainty, nested validation, and paper-faithful data/settings.
+- What does the 30-split bootstrap range mean? It describes split-generation variability for this fixed dataset; it is not a population-level confidence interval or significance test.
+- What would improve fidelity? Paper-faithful data/settings, independent implementation review, and nested validation for feature dimensions.
 
 ## Speaker handoff
 

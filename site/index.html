@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="COMP3314 Group 27's documented partial reproduction study of Multilinear Discriminant Analysis for face recognition.">
+  <title>Group 27 — MDA Face Recognition Study</title>
+  <style>
+    :root {
+      --paper: #f3f0e8;
+      --surface: #fffdf8;
+      --ink: #18241f;
+      --muted: #64716a;
+      --line: #d9d7cb;
+      --green: #246653;
+      --green-soft: #dcebe2;
+      --orange: #d26a45;
+      --blue: #6a8291;
+      --serif: Georgia, "Times New Roman", serif;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--sans); line-height: 1.6; }
+    a { color: var(--green); text-underline-offset: .18em; }
+    a:hover { color: #143f33; }
+    .wrap { width: min(1160px, calc(100% - 44px)); margin: 0 auto; }
+    .topbar { position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--line); background: rgb(243 240 232 / 94%); backdrop-filter: blur(12px); }
+    .nav { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { text-decoration: none; color: var(--ink); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .brand span { color: var(--green); }
+    .navlinks { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 20px; }
+    .navlinks a { font-size: .82rem; color: var(--muted); text-decoration: none; }
+    .navlinks a:hover { color: var(--ink); }
+    .hero { padding: 84px 0 64px; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(300px, .88fr); gap: 54px; align-items: center; }
+    .eyebrow { color: var(--green); font-size: .74rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 720px; margin: 18px 0 20px; font: 500 clamp(2.65rem, 5.6vw, 5rem)/1.04 var(--serif); letter-spacing: -.045em; }
+    .hero p { max-width: 650px; color: #4d5a53; font-size: 1.08rem; }
+    .hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+    .button { display: inline-flex; align-items: center; gap: 9px; padding: 11px 16px; border: 1px solid var(--green); border-radius: 3px; background: var(--green); color: white; font-size: .85rem; font-weight: 700; text-decoration: none; }
+    .button.secondary { color: var(--green); background: transparent; }
+    .button:hover { filter: brightness(.94); }
+    .hero-art { min-height: 340px; position: relative; display: grid; place-items: center; overflow: hidden; border: 1px solid #c9d5cb; background: #e4ede6; }
+    .hero-art::before, .hero-art::after { content: ""; position: absolute; width: 270px; height: 270px; border: 1px solid #b2c9ba; border-radius: 50%; }
+    .hero-art::after { width: 350px; height: 350px; }
+    .matrix-card { z-index: 1; width: min(78%, 360px); padding: 25px; border: 1px solid #cbd6cc; background: var(--surface); box-shadow: 14px 14px 0 rgb(36 102 83 / 12%); }
+    .matrix-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; color: var(--muted); font: 700 .72rem var(--mono); text-transform: uppercase; }
+    .matrix { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; aspect-ratio: 1.5; }
+    .matrix i { background: #cddbd0; }
+    .matrix i:nth-child(8n + 2), .matrix i:nth-child(8n + 3), .matrix i:nth-child(8n + 6) { background: #719c87; }
+    .matrix i:nth-child(19), .matrix i:nth-child(20), .matrix i:nth-child(27), .matrix i:nth-child(28), .matrix i:nth-child(35), .matrix i:nth-child(36), .matrix i:nth-child(43), .matrix i:nth-child(44) { background: #d68a65; }
+    .matrix-caption { margin: 15px 0 0; color: var(--muted); font-size: .77rem; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .stat { padding: 22px 18px 23px 0; }
+    .stat + .stat { padding-left: 24px; border-left: 1px solid var(--line); }
+    .stat strong { display: block; font: 500 1.8rem var(--serif); }
+    .stat span { color: var(--muted); font-size: .78rem; }
+    section { scroll-margin-top: 86px; }
+    .section { padding: 78px 0; }
+    .section-head { display: grid; grid-template-columns: .7fr 1.3fr; gap: 30px; align-items: end; margin-bottom: 34px; }
+    .section-head h2 { margin: 0; font: 500 clamp(2rem, 3.8vw, 3.3rem)/1.05 var(--serif); letter-spacing: -.035em; }
+    .section-head p { max-width: 570px; margin: 0; color: var(--muted); }
+    .paper-band { display: grid; grid-template-columns: 1.05fr .95fr; gap: 38px; padding: 34px; border: 1px solid var(--line); background: var(--surface); }
+    .paper-band h3 { margin: 8px 0 12px; font: 500 1.6rem/1.15 var(--serif); }
+    .paper-band p { margin-bottom: 0; color: var(--muted); }
+    .paper-cite { padding-left: 26px; border-left: 2px solid var(--orange); font-size: .88rem; }
+    .paper-cite strong { display: block; margin-bottom: 6px; color: var(--ink); }
+    .flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 16px; align-items: center; margin: 30px 0; }
+    .flow-step { min-height: 148px; padding: 20px; border: 1px solid var(--line); background: var(--surface); }
+    .flow-step .num { color: var(--orange); font: 700 .73rem var(--mono); }
+    .flow-step h3 { margin: 15px 0 5px; font: 500 1.25rem var(--serif); }
+    .flow-step p { margin: 0; color: var(--muted); font-size: .84rem; }
+    .arrow { color: var(--green); font-size: 1.5rem; }
+    .method-note { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+    .note { padding: 22px 24px; border-left: 3px solid var(--green); background: var(--green-soft); }
+    .note.warn { border-color: var(--orange); background: #f4e8df; }
+    .note h3 { margin: 0 0 8px; font-size: .9rem; }
+    .note p { margin: 0; color: #4d5a53; font-size: .87rem; }
+    .data-section { background: #e9e6dc; }
+    .results-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr); gap: 32px; align-items: start; }
+    .chart-frame { padding: 18px; border: 1px solid var(--line); background: var(--surface); }
+    .chart-frame img { width: 100%; height: auto; display: block; }
+    .chart-frame figcaption { margin-top: 10px; color: var(--muted); font-size: .75rem; }
+    .result-table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: .82rem; }
+    .result-table caption { padding: 0 0 12px; text-align: left; color: var(--muted); font-size: .78rem; }
+    .result-table th, .result-table td { padding: 11px 9px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+    .result-table th:first-child, .result-table td:first-child { text-align: left; }
+    .result-table thead th { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+    .result-table tbody tr:last-child td { border-bottom: 0; }
+    .result-table .best { color: var(--green); font-weight: 800; }
+    .table-scroll { overflow-x: auto; }
+    .result-foot { margin: 13px 0 0; color: var(--muted); font-size: .75rem; }
+    .takeaway { display: grid; grid-template-columns: 170px 1fr; gap: 25px; align-items: start; margin-top: 28px; padding: 25px 28px; background: var(--ink); color: white; }
+    .takeaway .label { color: #9dcab1; font: 700 .72rem var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+    .takeaway p { margin: 0; color: #e3e8e3; }
+    .compare-wrap { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+    .compare { width: 100%; border-collapse: collapse; min-width: 700px; }
+    .compare th, .compare td { padding: 17px 20px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .compare th { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .07em; }
+    .compare td:first-child { width: 20%; color: var(--green); font-weight: 750; }
+    .compare tr:last-child td { border-bottom: 0; }
+    .tasks { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .task-panel { padding: 28px; border: 1px solid var(--line); background: var(--surface); }
+    .task-panel.primary { border-top: 4px solid var(--green); }
+    .task-panel.next { border-top: 4px solid var(--orange); }
+    .task-panel h3 { margin: 6px 0 18px; font: 500 1.5rem var(--serif); }
+    .checklist { display: grid; gap: 11px; padding: 0; margin: 0; list-style: none; }
+    .checklist li { display: grid; grid-template-columns: 22px 1fr; gap: 9px; color: #4d5a53; font-size: .88rem; }
+    .check { color: var(--green); font-weight: 900; }
+    .todo { color: var(--orange); font-weight: 900; }
+    .team-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .person { min-height: 180px; padding: 22px; border: 1px solid var(--line); background: var(--surface); }
+    .person .person-no { color: var(--orange); font: 700 .7rem var(--mono); }
+    .person h3 { margin: 12px 0 8px; font: 500 1.27rem var(--serif); }
+    .person p { margin: 0; color: var(--muted); font-size: .82rem; }
+    .commands { position: relative; padding: 24px; overflow-x: auto; background: #18241f; color: #e7f1e9; }
+    .commands pre { margin: 0; font: .82rem/1.8 var(--mono); }
+    .commands .comment { color: #8db6a0; }
+    .resource-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .resource { display: flex; flex-direction: column; min-height: 128px; padding: 20px; border: 1px solid var(--line); background: var(--surface); text-decoration: none; }
+    .resource span { margin-bottom: auto; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; }
+    .resource strong { padding-top: 20px; font: 500 1.14rem var(--serif); }
+    .resource:hover { border-color: var(--green); }
+    .footer { padding: 30px 0 42px; border-top: 1px solid var(--line); color: var(--muted); font-size: .76rem; }
+    .footer-inner { display: flex; justify-content: space-between; gap: 20px; }
+    .smallcap { font: 700 .69rem var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    @media (max-width: 820px) {
+      .hero { grid-template-columns: 1fr; padding-top: 54px; }
+      .hero-art { min-height: 280px; }
+      .section-head, .paper-band, .results-grid { grid-template-columns: 1fr; }
+      .section-head { gap: 15px; }
+      .team-grid { grid-template-columns: repeat(2, 1fr); }
+      .flow { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); justify-self: center; line-height: 1; }
+      .flow-step { min-height: 0; }
+    }
+    @media (max-width: 580px) {
+      .wrap { width: min(100% - 30px, 1160px); }
+      .nav { align-items: flex-start; flex-direction: column; padding: 13px 0; gap: 9px; }
+      .navlinks { justify-content: flex-start; gap: 8px 16px; }
+      .navlinks a { font-size: .75rem; }
+      .hero { gap: 30px; padding: 45px 0; }
+      .hero p { font-size: .98rem; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .stat { padding: 16px 8px 16px 0; }
+      .stat + .stat { padding-left: 14px; }
+      .stat:nth-child(3) { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); }
+      .stat:nth-child(4) { border-top: 1px solid var(--line); }
+      .section { padding: 55px 0; }
+      .paper-band { padding: 23px; }
+      .paper-cite { padding-left: 16px; }
+      .method-note, .tasks { grid-template-columns: 1fr; }
+      .takeaway { grid-template-columns: 1fr; gap: 10px; padding: 22px; }
+      .team-grid, .resource-grid { grid-template-columns: 1fr; }
+      .person { min-height: 0; }
+      .footer-inner { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap nav">
+      <a class="brand" href="#top">COMP3314 <span>/</span> Group 27</a>
+      <nav class="navlinks" aria-label="Main navigation">
+        <a href="#paper">Paper</a><a href="#method">Method</a><a href="#results">Results</a><a href="#plan">Person 3 plan</a><a href="#team">Team</a><a href="#resources">Files</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <div class="wrap">
+      <section class="hero" aria-labelledby="hero-title">
+        <div>
+          <div class="eyebrow">Fall 2026 · Partial reproduction study</div>
+          <h1 id="hero-title">Can keeping image structure help recognize faces?</h1>
+          <p>Group 27 studies Multilinear Discriminant Analysis (MDA), a method that learns from an image as a matrix instead of flattening every pixel into one long list. We compare it with PCA and LDA face-recognition baselines.</p>
+          <div class="hero-actions">
+            <a class="button" href="#results">See the 30-split results <span aria-hidden="true">↘</span></a>
+            <a class="button secondary" href="../output/pdf/COMP3314_Group27_MDA_Partial_Reproduction.pdf">Read the report PDF ↗</a>
+          </div>
+        </div>
+        <div class="hero-art" role="img" aria-label="Illustration of an image matrix followed by learned row and column projections">
+          <div class="matrix-card">
+            <div class="matrix-head"><span>Image matrix X</span><span>h × w</span></div>
+            <div class="matrix" aria-hidden="true">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <p class="matrix-caption">Learn both directions: <strong>Uᵀ X V</strong></p>
+          </div>
+        </div>
+      </section>
+
+      <div class="stats" aria-label="Study at a glance">
+        <div class="stat"><strong>4</strong><span>methods compared</span></div>
+        <div class="stat"><strong>30</strong><span>matched splits per gallery size</span></div>
+        <div class="stat"><strong>40</strong><span>people in the Olivetti set</span></div>
+        <div class="stat"><strong>2–5</strong><span>training images per person</span></div>
+      </div>
+
+      <section class="section" id="paper">
+        <div class="section-head">
+          <div><div class="eyebrow">01 / The paper</div><h2>One paper, one testable idea.</h2></div>
+          <p>The 2007 paper proposes MDA for supervised dimensionality reduction. Its central idea is to preserve the image's row and column structure while learning features that separate identities.</p>
+        </div>
+        <div class="paper-band">
+          <div>
+            <div class="smallcap">Our research question</div>
+            <h3>With few labeled face images, does matrix-based MDA help identify people better than vector-based PCA and LDA?</h3>
+            <p>We compare the methods with the same gallery/probe splits and the same nearest-neighbour classifier, then ask how results change when MDA's projection axes are scaled differently.</p>
+          </div>
+          <div class="paper-cite">
+            <strong>Selected paper</strong>
+            Shuicheng Yan, Dong Xu, Qiang Yang, Lei Zhang, Xiaoou Tang, and Hong-Jiang Zhang. “Multilinear Discriminant Analysis for Face Recognition.” <em>IEEE Transactions on Image Processing</em>, 16(1), 212–220, January 2007. DOI: 10.1109/TIP.2006.884929.
+            <p style="margin-top:14px"><a href="https://mmlab.ie.cuhk.edu.hk/archive/2007/IP07_face02.pdf">Open the author-hosted paper ↗</a></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="method" style="padding-top:16px">
+        <div class="section-head">
+          <div><div class="eyebrow">02 / Method in plain terms</div><h2>Keep the rows. Learn the columns too.</h2></div>
+          <p>PCA looks for directions with high overall variation. LDA uses identity labels to separate classes. MDA extends that supervised idea to image matrices and alternates between their modes.</p>
+        </div>
+        <div class="flow" aria-label="MDA face-recognition pipeline">
+          <article class="flow-step"><div class="num">INPUT</div><h3>Face as a matrix</h3><p>Each grayscale image is a height-by-width array, not a flattened vector.</p></article>
+          <div class="arrow" aria-hidden="true">→</div>
+          <article class="flow-step"><div class="num">LEARN</div><h3>Alternate projections</h3><p>Update row projection U, then column projection V, using identity labels.</p></article>
+          <div class="arrow" aria-hidden="true">→</div>
+          <article class="flow-step"><div class="num">PREDICT</div><h3>Nearest face</h3><p>Project each probe and assign the identity of the closest gallery image.</p></article>
+        </div>
+        <div class="method-note">
+          <div class="note"><h3>Why MDA/2-1 and MDA/2-2?</h3><p>MDA/2-1 learns one image mode and leaves the other unchanged. MDA/2-2 learns both row and column projections, then compares the resulting compact features.</p></div>
+          <div class="note warn"><h3>Why test feature scaling?</h3><p>Euclidean nearest-neighbour distance changes when feature axes are rescaled. Our two normalization runs show that this implementation detail can change accuracy, especially with only two gallery images.</p></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="section data-section" id="results">
+      <div class="wrap">
+        <div class="section-head">
+          <div><div class="eyebrow">03 / Group results</div><h2>More gallery images help. The winner depends on the setting.</h2></div>
+          <p>We report the mean probe accuracy and sample standard deviation over 30 deterministic splits. Every method sees the same split; learned projections use training images only.</p>
+        </div>
+        <div class="results-grid">
+          <figure class="chart-frame">
+            <img src="../results/2026-10-28-30-repeat-followup/unit_l2/accuracy_vs_training_size.svg" alt="Line chart comparing mean face identification accuracy by training images per person for PCA, Fisherfaces, MDA two-one, and MDA two-two over 30 matched splits">
+            <figcaption>Group 27's unit-L2 primary run. The chart summarizes this implementation on the 64×64 data copy.</figcaption>
+          </figure>
+          <div>
+            <div class="table-scroll">
+              <table class="result-table">
+                <caption>Mean accuracy ± sample SD · percent</caption>
+                <thead><tr><th scope="col">Images</th><th scope="col">PCA</th><th scope="col">Fisher</th><th scope="col">MDA/2-1</th><th scope="col">MDA/2-2</th></tr></thead>
+                <tbody>
+                  <tr><td>2</td><td>65.7 ± 2.3</td><td>70.6 ± 2.6</td><td class="best">72.5 ± 3.5</td><td>42.4 ± 4.6</td></tr>
+                  <tr><td>3</td><td>75.3 ± 2.6</td><td class="best">84.7 ± 2.9</td><td>83.2 ± 2.4</td><td>66.7 ± 3.7</td></tr>
+                  <tr><td>4</td><td>81.0 ± 3.6</td><td class="best">90.0 ± 2.2</td><td>87.4 ± 2.5</td><td>82.2 ± 3.3</td></tr>
+                  <tr><td>5</td><td>85.0 ± 2.4</td><td class="best">93.3 ± 1.3</td><td>90.2 ± 2.3</td><td>88.1 ± 2.6</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="result-foot">Bold marks the highest mean in each row. These are group-generated measurements, not the paper's Table I.</p>
+          </div>
+        </div>
+        <div class="takeaway">
+          <div class="label">Careful takeaway</div>
+          <p>MDA/2-1 leads only at the smallest gallery size; Fisherfaces leads at three to five images. MDA/2-2 improves as the gallery grows, but it does not lead under this fixed configuration. Alternate within-scatter normalization lowers MDA/2-2 from 42.4% to 20.1% at two images per person. This is a partial reproduction and does not disprove the paper.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <section class="section" id="comparison">
+        <div class="section-head">
+          <div><div class="eyebrow">04 / Fair comparison</div><h2>What matches—and what does not.</h2></div>
+          <p>The paper reports that MDA/2-2 performs best across four ORL gallery/probe settings. Our lower and different ranking needs to be interpreted alongside these protocol gaps.</p>
+        </div>
+        <div class="compare-wrap">
+          <table class="compare">
+            <thead><tr><th>Study detail</th><th>Yan et al. (2007)</th><th>Group 27</th></tr></thead>
+            <tbody>
+              <tr><td>Images</td><td>Original ORL, normalized to 92 × 112 pixels</td><td>scikit-learn's 64 × 64 Olivetti copy</td></tr>
+              <tr><td>Feature settings</td><td>Best results among tested dimensions (including Fisherface/O)</td><td>Fixed 36-D PCA/Fisherfaces and 6 × 6 MDA/2-2</td></tr>
+              <tr><td>Evaluation</td><td>Best recognition accuracy at four gallery sizes</td><td>Mean and SD across 30 generated matched splits per size</td></tr>
+              <tr><td>Classifier</td><td>Nearest neighbour</td><td>Euclidean 1-nearest-neighbour</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="result-foot">We do not have the paper's exact random partitions. The 30 bootstrap ranges describe split variation conditional on one fixed dataset; they are not population-level confidence intervals or significance tests.</p>
+      </section>
+
+      <section class="section" id="plan">
+        <div class="section-head">
+          <div><div class="eyebrow">05 / Your assignment</div><h2>Person 3: own the experiment trail.</h2></div>
+          <p>Your job is to make the results runnable, fair, and transparent. The 30-split study is done; focus now on the independent audit, handoff, and final explanation.</p>
+        </div>
+        <div class="tasks">
+          <article class="task-panel primary">
+            <div class="eyebrow">Completed</div><h3>Build and record</h3>
+            <ul class="checklist">
+              <li><span class="check" aria-hidden="true">✓</span><span>Implement PCA, Fisherfaces, MDA/2-1, and MDA/2-2 under shared train/test splits.</span></li>
+              <li><span class="check" aria-hidden="true">✓</span><span>Run 30 splits for four gallery sizes under both projection normalizations.</span></li>
+              <li><span class="check" aria-hidden="true">✓</span><span>Save every split score, summary, chart, configuration, and MDA objective trace.</span></li>
+              <li><span class="check" aria-hidden="true">✓</span><span>Record paired differences and explain their conditional bootstrap ranges.</span></li>
+              <li><span class="check" aria-hidden="true">✓</span><span>Keep the five-split exploratory outputs intact as historical evidence.</span></li>
+            </ul>
+          </article>
+          <article class="task-panel next">
+            <div class="eyebrow">Next</div><h3>Audit and hand off</h3>
+            <ul class="checklist">
+              <li><span class="todo" aria-hidden="true">○</span><span>Ask Person 2 to check code against Sections II and IV and independently recalculate the headline table.</span></li>
+              <li><span class="todo" aria-hidden="true">○</span><span>Give Person 4 the final table, chart, paired CSV, protocol, and limitations.</span></li>
+              <li><span class="todo" aria-hidden="true">○</span><span>Explain why shared splits and training-only fitting make the comparison fairer.</span></li>
+              <li><span class="todo" aria-hidden="true">○</span><span>Rehearse the scaling-sensitivity and “partial reproduction” answers for Q&A.</span></li>
+              <li><span class="todo" aria-hidden="true">○</span><span>Review citations, data exclusions, and course rules with the group before any public release.</span></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="team" style="padding-top:12px">
+        <div class="section-head">
+          <div><div class="eyebrow">06 / Team map</div><h2>Four owners. One shared understanding.</h2></div>
+          <p>These roles divide production work. Everyone should still be ready to explain the whole story during the presentation and Q&A.</p>
+        </div>
+        <div class="team-grid">
+          <article class="person"><div class="person-no">PERSON 01</div><h3>Paper & method</h3><p>Explain DTC, alternating mode updates, and connections to PCA/LDA.</p></article>
+          <article class="person"><div class="person-no">PERSON 02</div><h3>Protocol audit</h3><p>Check data, splits, baselines, source-paper fidelity, and result values.</p></article>
+          <article class="person"><div class="person-no">PERSON 03 · YOU</div><h3>Experiment & code</h3><p>Maintain runnable code, matched results, paired analysis, and Git progress.</p></article>
+          <article class="person"><div class="person-no">PERSON 04</div><h3>Analysis & edit</h3><p>Integrate limitations, extension ideas, report structure, and slide flow.</p></article>
+        </div>
+      </section>
+
+      <section class="section" id="run" style="padding-top:10px">
+        <div class="section-head">
+          <div><div class="eyebrow">07 / Reproduce our run</div><h2>One project folder, traceable outputs.</h2></div>
+          <p>Set up Python from the repository README. The dataset is fetched into a local cache; face images are not committed. Use a new output path for new runs.</p>
+        </div>
+        <div class="commands"><pre><span class="comment"># Main 30-split study</span>
+python3 src/run_experiment.py --repeats 30 --output-dir results/rerun/unit_l2
+
+<span class="comment"># Normalization sensitivity and paired analysis</span>
+python3 src/run_experiment.py --projection-normalization within_scatter \
+  --repeats 30 --output-dir results/rerun/within_scatter
+python3 scripts/analyze_paired_results.py results/rerun/unit_l2/raw_results.csv</pre></div>
+      </section>
+
+      <section class="section" id="resources">
+        <div class="section-head">
+          <div><div class="eyebrow">08 / Project files</div><h2>Continue from the evidence.</h2></div>
+          <p>The repository keeps the plan, protocol, code, dated results, report, and progress together. The current remote is private while the group reviews it.</p>
+        </div>
+        <div class="resource-grid">
+          <a class="resource" href="../docs/PROGRESS.md"><span>Live project log</span><strong>Progress & next actions ↗</strong></a>
+          <a class="resource" href="../docs/team-plan.md"><span>Your role</span><strong>Person 3 work plan ↗</strong></a>
+          <a class="resource" href="../docs/experiments/2026-10-28-30-repeat-followup.md"><span>Experiment record</span><strong>30-split follow-up ↗</strong></a>
+          <a class="resource" href="../src/run_experiment.py"><span>Implementation</span><strong>Run the four methods ↗</strong></a>
+          <a class="resource" href="../docs/protocol.md"><span>Reproducibility</span><strong>Data and evaluation protocol ↗</strong></a>
+          <a class="resource" href="../report/main.tex"><span>Course deliverable</span><strong>Editable report source ↗</strong></a>
+          <a class="resource" href="https://github.com/Lavalx100/comp3314-mda-face-recognition-replication"><span>Version history</span><strong>Private GitHub repository ↗</strong></a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <span>COMP3314 · Group 27 · Fall 2026</span>
+      <span>Partial reproduction of Yan et al. (2007) · No face images redistributed</span>
+    </div>
+  </footer>
+</body>
+</html>

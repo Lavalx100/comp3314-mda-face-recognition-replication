@@ -423,7 +423,7 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict]]:
 
 def write_csv(path: Path, rows: Iterable[dict], fieldnames: list[str]) -> None:
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 

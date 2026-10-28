@@ -24,7 +24,7 @@ These are questions, not assumed conclusions. Report negative or mixed results a
 
 ## Current study design
 
-The baseline uses scikit-learn's 400-image, 40-identity, 64×64 Olivetti copy; per-image 8-bit histogram equalization; 2/3/4/5 training images per identity; five deterministic repeated stratified splits per count; and a shared Euclidean 1-NN classifier. It compares Eigenfaces PCA, Fisherfaces LDA, MDA/2-1, and MDA/2-2. Full details and deviations are in [protocol](protocol.md).
+The initial baseline used five deterministic splits. A stronger follow-up now uses scikit-learn's 400-image, 40-identity, 64×64 Olivetti copy; per-image 8-bit histogram equalization; 2/3/4/5 training images per identity; 30 deterministic repeated stratified splits per count; and a shared Euclidean 1-NN classifier. It compares Eigenfaces PCA, Fisherfaces LDA, MDA/2-1, and MDA/2-2. Full details and deviations are in [protocol](protocol.md).
 
 ## Planned research stages
 
@@ -32,7 +32,7 @@ The baseline uses scikit-learn's 400-image, 40-identity, 64×64 Olivetti copy; p
 |---|---|---|---|
 | A. Secure baseline | Freeze code, settings, raw split rows, and scale-sensitivity run | Complete | Dated run record and saved CSV/JSON/SVG |
 | B. Verification | Unit tests, independent code review, table-value audit, rerun check | In progress | Passing tests and protocol audit |
-| C. Stronger estimate | Increase repeated splits (target at least 30) and analyze paired per-split differences | Planned | Raw rows, uncertainty intervals, paired plots, dated log |
+| C. Stronger estimate | Increase repeated splits to 30 and analyze paired per-split differences | Complete for current fixed settings | Raw rows, summaries, paired bootstrap ranges, charts, dated log |
 | D. Fidelity extension | If permitted source data can be obtained, test original-resolution ORL preprocessing and paper feature settings | Planned / access dependent | Provenance/terms record and configuration; otherwise document why unavailable |
 | E. Coursework outputs | Final 3–4-page LaTeX report and 9-minute slide deck with a 3-minute Q&A plan | In progress | Report and slides reviewed by all four members |
 
@@ -42,7 +42,7 @@ The stronger estimate and fidelity extension must not overwrite Stage A. Keep ev
 
 - Report mean accuracy and sample SD over repeated splits, and retain every split-level score.
 - Since methods share splits, report paired differences as well as separate means in the stronger-estimate stage.
-- Do not call a five-split SD a confidence interval or claim statistical significance from it.
+- Treat the five-split SD as exploratory description only. The 30-split percentile bootstrap ranges describe split-generation variability conditional on this fixed dataset; they are not population-level confidence intervals or significance tests.
 - Include the MDA training objective trace as an optimization diagnostic only; it is not test accuracy.
 - Compare with the article's reported best accuracies only as context because data resolution, selected dimensions, and aggregation differ.
 
