@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 470" role="img" aria-labelledby="title desc">
+<title id="title">Recognition accuracy by training images per person</title>
+<desc id="desc">Mean accuracy over repeated stratified ORL splits; whiskers show one standard deviation.</desc>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<line x1="78" y1="398.0" x2="796" y2="398.0" stroke="#e4ebef"/>
+<text x="66" y="402.0" text-anchor="end" font-family="Arial" font-size="13" fill="#51616d">0%</text>
+<line x1="78" y1="324.8" x2="796" y2="324.8" stroke="#e4ebef"/>
+<text x="66" y="328.8" text-anchor="end" font-family="Arial" font-size="13" fill="#51616d">20%</text>
+<line x1="78" y1="251.6" x2="796" y2="251.6" stroke="#e4ebef"/>
+<text x="66" y="255.6" text-anchor="end" font-family="Arial" font-size="13" fill="#51616d">40%</text>
+<line x1="78" y1="178.4" x2="796" y2="178.4" stroke="#e4ebef"/>
+<text x="66" y="182.4" text-anchor="end" font-family="Arial" font-size="13" fill="#51616d">60%</text>
+<line x1="78" y1="105.2" x2="796" y2="105.2" stroke="#e4ebef"/>
+<text x="66" y="109.2" text-anchor="end" font-family="Arial" font-size="13" fill="#51616d">80%</text>
+<line x1="78" y1="32.0" x2="796" y2="32.0" stroke="#e4ebef"/>
+<text x="66" y="36.0" text-anchor="end" font-family="Arial" font-size="13" fill="#51616d">100%</text>
+<line x1="78" y1="398" x2="796" y2="398" stroke="#61717d"/>
+<line x1="78" y1="32" x2="78" y2="398" stroke="#61717d"/>
+<text x="78.0" y="423" text-anchor="middle" font-family="Arial" font-size="13" fill="#51616d">2</text>
+<text x="317.3" y="423" text-anchor="middle" font-family="Arial" font-size="13" fill="#51616d">3</text>
+<text x="556.7" y="423" text-anchor="middle" font-family="Arial" font-size="13" fill="#51616d">4</text>
+<text x="796.0" y="423" text-anchor="middle" font-family="Arial" font-size="13" fill="#51616d">5</text>
+<line x1="78.0" y1="118.6" x2="78.0" y2="137.3" stroke="#537895" stroke-width="1.6"/>
+<line x1="73.0" y1="118.6" x2="83.0" y2="118.6" stroke="#537895" stroke-width="1.6"/>
+<line x1="73.0" y1="137.3" x2="83.0" y2="137.3" stroke="#537895" stroke-width="1.6"/>
+<circle cx="78.0" cy="128.0" r="4.5" fill="#537895"/>
+<line x1="317.3" y1="83.8" x2="317.3" y2="97.0" stroke="#537895" stroke-width="1.6"/>
+<line x1="312.3" y1="83.8" x2="322.3" y2="83.8" stroke="#537895" stroke-width="1.6"/>
+<line x1="312.3" y1="97.0" x2="322.3" y2="97.0" stroke="#537895" stroke-width="1.6"/>
+<circle cx="317.3" cy="90.4" r="4.5" fill="#537895"/>
+<line x1="556.7" y1="64.0" x2="556.7" y2="86.4" stroke="#537895" stroke-width="1.6"/>
+<line x1="551.7" y1="64.0" x2="561.7" y2="64.0" stroke="#537895" stroke-width="1.6"/>
+<line x1="551.7" y1="86.4" x2="561.7" y2="86.4" stroke="#537895" stroke-width="1.6"/>
+<circle cx="556.7" cy="75.2" r="4.5" fill="#537895"/>
+<line x1="796.0" y1="55.4" x2="796.0" y2="69.7" stroke="#537895" stroke-width="1.6"/>
+<line x1="791.0" y1="55.4" x2="801.0" y2="55.4" stroke="#537895" stroke-width="1.6"/>
+<line x1="791.0" y1="69.7" x2="801.0" y2="69.7" stroke="#537895" stroke-width="1.6"/>
+<circle cx="796.0" cy="62.6" r="4.5" fill="#537895"/>
+<polyline points="78.0,128.0 317.3,90.4 556.7,75.2 796.0,62.6" fill="none" stroke="#537895" stroke-width="2.7" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="78.0" y1="225.3" x2="78.0" y2="329.3" stroke="#D67B43" stroke-width="1.6"/>
+<line x1="73.0" y1="225.3" x2="83.0" y2="225.3" stroke="#D67B43" stroke-width="1.6"/>
+<line x1="73.0" y1="329.3" x2="83.0" y2="329.3" stroke="#D67B43" stroke-width="1.6"/>
+<circle cx="78.0" cy="277.3" r="4.5" fill="#D67B43"/>
+<line x1="317.3" y1="204.2" x2="317.3" y2="304.7" stroke="#D67B43" stroke-width="1.6"/>
+<line x1="312.3" y1="204.2" x2="322.3" y2="204.2" stroke="#D67B43" stroke-width="1.6"/>
+<line x1="312.3" y1="304.7" x2="322.3" y2="304.7" stroke="#D67B43" stroke-width="1.6"/>
+<circle cx="317.3" cy="254.5" r="4.5" fill="#D67B43"/>
+<line x1="556.7" y1="210.2" x2="556.7" y2="300.0" stroke="#D67B43" stroke-width="1.6"/>
+<line x1="551.7" y1="210.2" x2="561.7" y2="210.2" stroke="#D67B43" stroke-width="1.6"/>
+<line x1="551.7" y1="300.0" x2="561.7" y2="300.0" stroke="#D67B43" stroke-width="1.6"/>
+<circle cx="556.7" cy="255.1" r="4.5" fill="#D67B43"/>
+<line x1="796.0" y1="197.5" x2="796.0" y2="287.1" stroke="#D67B43" stroke-width="1.6"/>
+<line x1="791.0" y1="197.5" x2="801.0" y2="197.5" stroke="#D67B43" stroke-width="1.6"/>
+<line x1="791.0" y1="287.1" x2="801.0" y2="287.1" stroke="#D67B43" stroke-width="1.6"/>
+<circle cx="796.0" cy="242.3" r="4.5" fill="#D67B43"/>
+<polyline points="78.0,277.3 317.3,254.5 556.7,255.1 796.0,242.3" fill="none" stroke="#D67B43" stroke-width="2.7" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="78.0" y1="90.4" x2="78.0" y2="112.9" stroke="#7C69A6" stroke-width="1.6"/>
+<line x1="73.0" y1="90.4" x2="83.0" y2="90.4" stroke="#7C69A6" stroke-width="1.6"/>
+<line x1="73.0" y1="112.9" x2="83.0" y2="112.9" stroke="#7C69A6" stroke-width="1.6"/>
+<circle cx="78.0" cy="101.7" r="4.5" fill="#7C69A6"/>
+<line x1="317.3" y1="62.8" x2="317.3" y2="76.4" stroke="#7C69A6" stroke-width="1.6"/>
+<line x1="312.3" y1="62.8" x2="322.3" y2="62.8" stroke="#7C69A6" stroke-width="1.6"/>
+<line x1="312.3" y1="76.4" x2="322.3" y2="76.4" stroke="#7C69A6" stroke-width="1.6"/>
+<circle cx="317.3" cy="69.6" r="4.5" fill="#7C69A6"/>
+<line x1="556.7" y1="52.6" x2="556.7" y2="68.8" stroke="#7C69A6" stroke-width="1.6"/>
+<line x1="551.7" y1="52.6" x2="561.7" y2="52.6" stroke="#7C69A6" stroke-width="1.6"/>
+<line x1="551.7" y1="68.8" x2="561.7" y2="68.8" stroke="#7C69A6" stroke-width="1.6"/>
+<circle cx="556.7" cy="60.7" r="4.5" fill="#7C69A6"/>
+<line x1="796.0" y1="45.9" x2="796.0" y2="58.6" stroke="#7C69A6" stroke-width="1.6"/>
+<line x1="791.0" y1="45.9" x2="801.0" y2="45.9" stroke="#7C69A6" stroke-width="1.6"/>
+<line x1="791.0" y1="58.6" x2="801.0" y2="58.6" stroke="#7C69A6" stroke-width="1.6"/>
+<circle cx="796.0" cy="52.3" r="4.5" fill="#7C69A6"/>
+<polyline points="78.0,101.7 317.3,69.6 556.7,60.7 796.0,52.3" fill="none" stroke="#7C69A6" stroke-width="2.7" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="78.0" y1="373.0" x2="78.0" y2="384.1" stroke="#16836D" stroke-width="1.6"/>
+<line x1="73.0" y1="373.0" x2="83.0" y2="373.0" stroke="#16836D" stroke-width="1.6"/>
+<line x1="73.0" y1="384.1" x2="83.0" y2="384.1" stroke="#16836D" stroke-width="1.6"/>
+<circle cx="78.0" cy="378.6" r="4.5" fill="#16836D"/>
+<line x1="317.3" y1="242.7" x2="317.3" y2="333.6" stroke="#16836D" stroke-width="1.6"/>
+<line x1="312.3" y1="242.7" x2="322.3" y2="242.7" stroke="#16836D" stroke-width="1.6"/>
+<line x1="312.3" y1="333.6" x2="322.3" y2="333.6" stroke="#16836D" stroke-width="1.6"/>
+<circle cx="317.3" cy="288.2" r="4.5" fill="#16836D"/>
+<line x1="556.7" y1="119.6" x2="556.7" y2="170.9" stroke="#16836D" stroke-width="1.6"/>
+<line x1="551.7" y1="119.6" x2="561.7" y2="119.6" stroke="#16836D" stroke-width="1.6"/>
+<line x1="551.7" y1="170.9" x2="561.7" y2="170.9" stroke="#16836D" stroke-width="1.6"/>
+<circle cx="556.7" cy="145.2" r="4.5" fill="#16836D"/>
+<line x1="796.0" y1="72.0" x2="796.0" y2="103.4" stroke="#16836D" stroke-width="1.6"/>
+<line x1="791.0" y1="72.0" x2="801.0" y2="72.0" stroke="#16836D" stroke-width="1.6"/>
+<line x1="791.0" y1="103.4" x2="801.0" y2="103.4" stroke="#16836D" stroke-width="1.6"/>
+<circle cx="796.0" cy="87.7" r="4.5" fill="#16836D"/>
+<polyline points="78.0,378.6 317.3,288.2 556.7,145.2 796.0,87.7" fill="none" stroke="#16836D" stroke-width="2.7" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="84" y1="439" x2="106" y2="439" stroke="#537895" stroke-width="3"/>
+<text x="113" y="443" font-family="Arial" font-size="12" fill="#263746">Eigenfaces PCA</text>
+<line x1="344" y1="439" x2="366" y2="439" stroke="#D67B43" stroke-width="3"/>
+<text x="373" y="443" font-family="Arial" font-size="12" fill="#263746">Fisherfaces LDA</text>
+<line x1="84" y1="460" x2="106" y2="460" stroke="#7C69A6" stroke-width="3"/>
+<text x="113" y="464" font-family="Arial" font-size="12" fill="#263746">MDA/2-1</text>
+<line x1="344" y1="460" x2="366" y2="460" stroke="#16836D" stroke-width="3"/>
+<text x="373" y="464" font-family="Arial" font-size="12" fill="#263746">MDA/2-2</text>
+<text x="437.0" y="462" text-anchor="middle" font-family="Arial" font-size="13" fill="#263746">Training images per identity</text>
+<text transform="translate(20 220) rotate(-90)" text-anchor="middle" font-family="Arial" font-size="13" fill="#263746">Test accuracy</text>
+</svg>

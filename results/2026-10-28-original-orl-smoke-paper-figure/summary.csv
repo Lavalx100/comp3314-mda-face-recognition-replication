@@ -1,0 +1,5 @@
+train_per_class,method,repeats,mean_accuracy,std_accuracy
+2,Eigenfaces PCA,1,0.725,0.0
+2,Fisherfaces LDA,1,0.7125,0.0
+2,MDA/2-1,1,0.84375,0.0
+2,MDA/2-2,1,0.453125,0.0

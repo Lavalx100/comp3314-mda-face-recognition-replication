@@ -1,0 +1,5 @@
+train_per_class,repeat,seed,method,iteration,training_fisher_ratio
+2,1,5314,MDA/2-1,1,6.482723135981082
+2,1,5314,MDA/2-1,2,6.482723135981082
+2,1,5314,MDA/2-2,1,23.683501434847223
+2,1,5314,MDA/2-2,2,64.92530034747203

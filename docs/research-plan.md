@@ -24,16 +24,16 @@ These are questions, not assumed conclusions. Report negative or mixed results a
 
 ## Current study design
 
-The initial baseline used five deterministic splits. A stronger follow-up now uses scikit-learn's 400-image, 40-identity, 64×64 Olivetti copy; per-image 8-bit histogram equalization; 2/3/4/5 training images per identity; 30 deterministic repeated stratified splits per count; and a shared Euclidean 1-NN classifier. It compares Eigenfaces PCA, Fisherfaces LDA, MDA/2-1, and MDA/2-2. Full details and deviations are in [protocol](protocol.md).
+The initial baseline and 30-split follow-up use scikit-learn's 400-image, 40-identity, 64×64 Olivetti copy. A fidelity extension now loads the official original-resolution 112×92 ORL archive, uses the same 2/3/4/5 gallery counts, per-image histogram equalization, matched seeds, and Euclidean 1-NN. It also sweeps feature dimensions, retaining every per-dimension result. Full details and deviations are in [protocol](protocol.md).
 
 ## Planned research stages
 
 | Stage | Purpose | Status | Exit evidence |
 |---|---|---|---|
 | A. Secure baseline | Freeze code, settings, raw split rows, and scale-sensitivity run | Complete | Dated run record and saved CSV/JSON/SVG |
-| B. Verification | Unit tests, independent code review, table-value audit, rerun check | In progress | Passing tests and protocol audit |
+| B. Verification | Independent code review, paper Table I audit, protocol audit, and rerun review | In progress | Person 2's discrepancy checklist and confirmed table transcription |
 | C. Stronger estimate | Increase repeated splits to 30 and analyze paired per-split differences | Complete for current fixed settings | Raw rows, summaries, paired bootstrap ranges, charts, dated log |
-| D. Fidelity extension | If permitted source data can be obtained, test original-resolution ORL preprocessing and paper feature settings | Planned / access dependent | Provenance/terms record and configuration; otherwise document why unavailable |
+| D. Fidelity extension | Reproduce the ORL experiment on original-resolution data and compare paper-style best dimensions | Complete as a documented follow-up; exact author run unavailable | Original archive hash, loader, full raw sweep, published-table comparison, and caveats |
 | E. Coursework outputs | Final 3–4-page LaTeX report and 9-minute slide deck with a 3-minute Q&A plan | In progress | Report and slides reviewed by all four members |
 
 The stronger estimate and fidelity extension must not overwrite Stage A. Keep every setting in a separate named results folder.

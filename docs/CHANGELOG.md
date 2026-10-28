@@ -1,5 +1,15 @@
 # Change log
 
+## 2026-10-28 — Original-resolution ORL reproduction follow-up
+
+- Added direct loading of the official 112×92 Cambridge ORL PGM archive and recorded its checksum; no face images are committed.
+- Added the Fig. 3 MDA stopping rule and expanded baseline dimensions for the original-resolution protocol.
+- Completed matched 30-split fixed-setting runs under unit-L2 and within-scatter scaling, with paired comparisons and objective traces.
+- Completed a five-repeat, 156-setting MDA/2-2 dimension sweep and full PCA/Fisherface/MDA/2-1 feature curves; retained all 8,920 split/configuration rows and generated the row×column heatmap.
+- Replaced quadratic high-dimensional objective-trace construction with an equivalent scatter-trace calculation; vectorized mode-wise scatter accumulation and made the sweep checkpoint after every split with compatible resume support.
+- Documented the remaining gap to Table I, warned that grid maxima are test-selected, and updated the research, progress, limitations, README, and Person 3 handoff materials.
+- Added a reusable SVG heatmap renderer for the MDA/2-2 dimension surface.
+
 ## 2026-10-28 — Thirty-split paired follow-up
 
 - Ran 30 matched splits per gallery size for both unit-L2 and within-scatter projection normalization.

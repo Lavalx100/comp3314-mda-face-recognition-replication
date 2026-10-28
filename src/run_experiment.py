@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Small, reproducible ORL-style study of MDA against face-recognition baselines.
+"""Reproducible ORL face-recognition study of MDA and standard baselines.
 
-The implementation follows the alternating k-mode procedure in Yan et al. (2007).
-It uses the 64x64 Olivetti copy supplied by scikit-learn, not the paper's original
-112x92 preprocessing, so its results are a partial reproduction rather than an
-exact replication of the published table.
+The implementation follows the alternating k-mode procedure in Yan et al. (2007)
+and supports both scikit-learn's historical 64x64 copy and the original 112x92
+Cambridge PGM archive. The original-resolution runs are paper-style follow-ups,
+not exact reproductions: the paper omits its split seeds and full dimension search.
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import time
 from collections import defaultdict
@@ -19,6 +20,8 @@ from typing import Iterable
 
 import numpy as np
 from sklearn.datasets import fetch_olivetti_faces
+
+from orl_data import ORL_ARCHIVE_URL, ORL_CITATION, load_original_orl
 
 
 PAPER_URL = "https://mmlab.ie.cuhk.edu.hk/archive/2007/IP07_face02.pdf"
@@ -43,6 +46,13 @@ def load_faces(data_home: Path) -> tuple[np.ndarray, np.ndarray]:
     if images.ndim != 3 or images.shape[0] != 400 or len(np.unique(labels)) != 40:
         raise ValueError(f"Unexpected Olivetti shape/classes: {images.shape}")
     return images, labels
+
+
+def load_experiment_data(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
+    if args.dataset == "orl-original":
+        images, labels = load_original_orl(args.original_orl_archive)
+        return equalize_histogram(images), labels
+    return load_faces(args.data_home)
 
 
 def equalize_histogram(images: np.ndarray) -> np.ndarray:
@@ -92,6 +102,22 @@ def scatter_matrices(features: np.ndarray, labels: np.ndarray) -> tuple[np.ndarr
         centered = group - class_mean
         within += centered.T @ centered
     return between, within
+
+
+def fisher_trace_ratio(features: np.ndarray, labels: np.ndarray) -> float:
+    """Compute tr(Sb)/tr(Sw) without constructing a feature-by-feature matrix."""
+    features = np.asarray(features, dtype=np.float64)
+    overall = features.mean(axis=0)
+    between_trace = 0.0
+    within_trace = 0.0
+    for label in np.unique(labels):
+        group = features[labels == label]
+        class_mean = group.mean(axis=0)
+        delta = class_mean - overall
+        between_trace += len(group) * float(delta @ delta)
+        centered = group - class_mean
+        within_trace += float(np.sum(centered * centered))
+    return between_trace / max(within_trace, 1e-12)
 
 
 def leading_generalized_eigenvectors(
@@ -148,16 +174,15 @@ def mode_scatter(projected: np.ndarray, labels: np.ndarray, mode: int) -> tuple[
     between = np.zeros((dimension, dimension), dtype=np.float64)
     within = np.zeros_like(between)
     class_labels = np.unique(labels)
+    overall = coordinate_samples.mean(axis=1)
 
-    for vectors in coordinate_samples:
-        overall = vectors.mean(axis=0)
-        for label in class_labels:
-            group = vectors[labels == label]
-            class_mean = group.mean(axis=0)
-            delta = class_mean - overall
-            between += len(group) * np.outer(delta, delta)
-            centered = group - class_mean
-            within += centered.T @ centered
+    for label in class_labels:
+        group = coordinate_samples[:, labels == label, :]
+        class_mean = group.mean(axis=1)
+        delta = class_mean - overall
+        between += group.shape[1] * (delta.T @ delta)
+        centered = group - class_mean[:, None, :]
+        within += np.einsum("kni,knj->ij", centered, centered, optimize=True)
     return between, within
 
 
@@ -174,39 +199,81 @@ def fit_mda(
     max_iter: int,
     tolerance: float,
     projection_normalization: str,
+    stopping_rule: str = "objective",
+    mode_order: str = "row_first",
 ) -> tuple[np.ndarray, np.ndarray, list[float]]:
     height, width = train_images.shape[1:]
     row_projection = np.eye(height, dtype=np.float64)
     col_projection = np.eye(width, dtype=np.float64)
     history: list[float] = []
+    if mode_order not in {"row_first", "column_first"}:
+        raise ValueError(f"Unknown MDA mode-update order: {mode_order}")
+    mode_sequence = (0, 1) if mode_order == "row_first" else (1, 0)
 
-    for _iteration in range(max_iter):
-        if components[0] is not None:
-            partially_projected = np.einsum(
-                "nhw,wb->nhb", train_images, col_projection, optimize=True
-            )
-            between, within = mode_scatter(partially_projected, train_labels, mode=0)
-            row_projection = leading_generalized_eigenvectors(
-                between, within, components[0], projection_normalization=projection_normalization
-            )
-
-        if components[1] is not None:
-            partially_projected = np.einsum(
-                "ah,nhw->naw", row_projection.T, train_images, optimize=True
-            )
-            between, within = mode_scatter(partially_projected, train_labels, mode=1)
-            col_projection = leading_generalized_eigenvectors(
-                between, within, components[1], projection_normalization=projection_normalization
-            )
+    for iteration in range(max_iter):
+        previous_row = row_projection.copy()
+        previous_col = col_projection.copy()
+        for mode in mode_sequence:
+            if mode == 0 and components[0] is not None:
+                partially_projected = np.einsum(
+                    "nhw,wb->nhb", train_images, col_projection, optimize=True
+                )
+                between, within = mode_scatter(partially_projected, train_labels, mode=0)
+                row_projection = leading_generalized_eigenvectors(
+                    between, within, components[0], projection_normalization=projection_normalization
+                )
+            elif mode == 1 and components[1] is not None:
+                partially_projected = np.einsum(
+                    "ah,nhw->naw", row_projection.T, train_images, optimize=True
+                )
+                between, within = mode_scatter(partially_projected, train_labels, mode=1)
+                col_projection = leading_generalized_eigenvectors(
+                    between, within, components[1], projection_normalization=projection_normalization
+                )
 
         embeddings = apply_mda(train_images, row_projection, col_projection)
-        between, within = scatter_matrices(embeddings, train_labels)
-        objective = float(np.trace(between) / max(float(np.trace(within)), 1e-12))
+        # The output may have thousands of features during a dimension sweep.
+        # Only the scatter traces are needed for this diagnostic; allocating the
+        # full square scatter matrices would be wasteful and scale quadratically.
+        objective = fisher_trace_ratio(embeddings, train_labels)
         history.append(objective)
-        if len(history) > 1:
+        if stopping_rule == "objective" and len(history) > 1:
             change = abs(history[-1] - history[-2]) / max(abs(history[-2]), 1e-12)
             if change < tolerance:
                 break
+        elif stopping_rule == "projection_change" and iteration + 1 > 2:
+            changes = []
+            if components[0] is not None:
+                changes.append(
+                    np.linalg.norm(row_projection - previous_row, ord="fro")
+                    < max(height, 1) * tolerance
+                )
+            if components[1] is not None:
+                changes.append(
+                    np.linalg.norm(col_projection - previous_col, ord="fro")
+                    < max(width, 1) * tolerance
+                )
+            if changes and all(changes):
+                break
+        elif stopping_rule == "paper_figure" and iteration + 1 > 2:
+            # Fig. 3 in Yan et al. stops after t > 2 when each projection's
+            # Frobenius change is below its requested output dimension m'_k.
+            # The paper does not state an additional tolerance multiplier.
+            changes = []
+            if components[0] is not None:
+                changes.append(
+                    np.linalg.norm(row_projection - previous_row, ord="fro")
+                    < components[0]
+                )
+            if components[1] is not None:
+                changes.append(
+                    np.linalg.norm(col_projection - previous_col, ord="fro")
+                    < components[1]
+                )
+            if changes and all(changes):
+                break
+        elif stopping_rule not in {"objective", "projection_change", "paper_figure"}:
+            raise ValueError(f"Unknown MDA stopping rule: {stopping_rule}")
 
     return (
         apply_mda(train_images, row_projection, col_projection),
@@ -232,13 +299,18 @@ def fit_fisherfaces(
     test_images: np.ndarray,
     n_components: int = 36,
     projection_normalization: str = "unit_l2",
+    pca_components_max: int | None = 100,
 ) -> tuple[np.ndarray, np.ndarray]:
     train = train_images.reshape(len(train_images), -1)
     test = test_images.reshape(len(test_images), -1)
     mean = train.mean(axis=0)
     centered = train - mean
     classes = np.unique(train_labels)
-    pca_dimensions = min(100, len(train) - len(classes), centered.shape[1])
+    # Preserve the earlier study's 100-component ceiling by default. The
+    # original-resolution sweep passes None to use the full N-C subspace.
+    pca_dimensions = min(len(train) - len(classes), centered.shape[1])
+    if pca_components_max is not None:
+        pca_dimensions = min(pca_dimensions, pca_components_max)
     if pca_dimensions < 1:
         raise ValueError("Fisherfaces requires at least two training images per identity.")
     _u, _s, vt = np.linalg.svd(centered, full_matrices=False)
@@ -270,28 +342,37 @@ def method_features(
     max_iter: int,
     tolerance: float,
     projection_normalization: str,
+    mda_stopping_rule: str = "objective",
+    mda_mode_order: str = "row_first",
+    pca_dim: int = 36,
+    fisher_dim: int = 36,
+    fisher_pca_max: int | None = 100,
 ) -> tuple[np.ndarray, np.ndarray, list[float]]:
     if name == "Eigenfaces PCA":
-        train, test = fit_pca(train_images, test_images)
+        train, test = fit_pca(train_images, test_images, n_components=pca_dim)
         return train, test, []
     if name == "Fisherfaces LDA":
         train, test = fit_fisherfaces(
             train_images, train_labels, test_images,
+            n_components=fisher_dim,
             projection_normalization=projection_normalization,
+            pca_components_max=fisher_pca_max,
         )
         return train, test, []
     if name == "MDA/2-1":
         train, test, history = fit_mda(
             train_images, train_labels, test_images,
             components=(mda_dim, None), max_iter=max_iter, tolerance=tolerance,
-            projection_normalization=projection_normalization,
+            projection_normalization=projection_normalization, stopping_rule=mda_stopping_rule,
+            mode_order=mda_mode_order,
         )
         return train, test, history
     if name == "MDA/2-2":
         train, test, history = fit_mda(
             train_images, train_labels, test_images,
             components=(mda_dim, mda_dim), max_iter=max_iter, tolerance=tolerance,
-            projection_normalization=projection_normalization,
+            projection_normalization=projection_normalization, stopping_rule=mda_stopping_rule,
+            mode_order=mda_mode_order,
         )
         return train, test, history
     raise ValueError(f"Unknown method: {name}")
@@ -363,7 +444,7 @@ def write_svg(summary: list[dict], output: Path) -> None:
 
 
 def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict]]:
-    images, labels = load_faces(args.data_home)
+    images, labels = load_experiment_data(args)
     raw_rows: list[dict] = []
     objective_rows: list[dict] = []
 
@@ -382,6 +463,11 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict]]:
                     max_iter=args.max_iter,
                     tolerance=args.tolerance,
                     projection_normalization=args.projection_normalization,
+                    mda_stopping_rule=args.mda_stopping_rule,
+                    mda_mode_order=args.mda_mode_order,
+                    pca_dim=args.pca_dim,
+                    fisher_dim=args.fisher_dim,
+                    fisher_pca_max=args.fisher_pca_max,
                 )
                 prediction = predict_nearest_neighbor(train_features, y_train, test_features)
                 elapsed = time.perf_counter() - start
@@ -430,14 +516,41 @@ def write_csv(path: Path, rows: Iterable[dict], fieldnames: list[str]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--dataset",
+        choices=("olivetti64", "orl-original"),
+        default="olivetti64",
+        help="Dataset copy; use orl-original for the Cambridge 112x92 PGM archive.",
+    )
     parser.add_argument("--data-home", type=Path, default=Path(".cache/olivetti"), help="Local scikit-learn dataset cache.")
+    parser.add_argument(
+        "--original-orl-archive",
+        type=Path,
+        default=Path(".cache/orl-original/att_faces.zip"),
+        help="Path to Cambridge's att_faces.zip; kept out of version control.",
+    )
     parser.add_argument("--output-dir", type=Path, default=Path("results"), help="Directory for CSV, JSON, and SVG results.")
     parser.add_argument("--train-per-class", type=parse_sizes, default=parse_sizes("2,3,4,5"))
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--seed", type=int, default=3314)
     parser.add_argument("--mda-dim", type=int, default=6, help="Projection dimension per retained MDA mode.")
+    parser.add_argument("--pca-dim", type=int, default=36, help="Maximum retained Eigenfaces PCA dimension.")
+    parser.add_argument("--fisher-dim", type=int, default=36, help="Maximum Fisherface LDA output dimension.")
+    parser.add_argument("--fisher-pca-max", type=int, default=100, help="Fisherface PCA pre-reduction cap; use a large value for full N-C reduction.")
     parser.add_argument("--max-iter", type=int, default=10)
     parser.add_argument("--tolerance", type=float, default=1e-4)
+    parser.add_argument(
+        "--mda-stopping-rule",
+        choices=("objective", "projection_change", "paper_figure"),
+        default="objective",
+        help="paper_figure uses the stopping threshold printed in Fig. 3; projection_change uses a stricter tolerance.",
+    )
+    parser.add_argument(
+        "--mda-mode-order",
+        choices=("row_first", "column_first"),
+        default="row_first",
+        help="Which image mode is optimized first in each MDA iteration.",
+    )
     parser.add_argument(
         "--projection-normalization",
         choices=("unit_l2", "within_scatter"),
@@ -445,45 +558,59 @@ def main() -> None:
         help="Scaling convention for generalized-eigenvector axes; 1-NN is scale-sensitive.",
     )
     args = parser.parse_args()
-    if args.repeats < 1 or args.mda_dim < 1 or args.max_iter < 1:
-        parser.error("repeats, mda-dim, and max-iter must be positive")
+    if min(args.repeats, args.mda_dim, args.pca_dim, args.fisher_dim, args.max_iter) < 1:
+        parser.error("repeats and all feature dimensions/iteration limits must be positive")
 
-    args.data_home.mkdir(parents=True, exist_ok=True)
+    if args.dataset == "olivetti64":
+        args.data_home.mkdir(parents=True, exist_ok=True)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     raw_rows, summary, objective_rows = run(args)
     write_csv(args.output_dir / "raw_results.csv", raw_rows, list(raw_rows[0].keys()))
     write_csv(args.output_dir / "summary.csv", summary, list(summary[0].keys()))
     if objective_rows:
         write_csv(args.output_dir / "mda_objectives.csv", objective_rows, list(objective_rows[0].keys()))
+    original_orl = args.dataset == "orl-original"
+    image_shape = [112, 92] if original_orl else [64, 64]
     metadata = {
         "paper": "Yan et al., Multilinear Discriminant Analysis for Face Recognition (IEEE TIP, 2007)",
         "paper_url": PAPER_URL,
-        "dataset": "Olivetti faces (AT&T ORL copy fetched by scikit-learn)",
+        "dataset": "Original-resolution AT&T/ORL Database of Faces" if original_orl else "Olivetti faces (AT&T ORL copy fetched by scikit-learn)",
+        "dataset_archive_url": ORL_ARCHIVE_URL if original_orl else "https://scikit-learn.org/stable/datasets/real_world.html#olivetti-faces-dataset",
+        "dataset_credit": ORL_CITATION if original_orl else "AT&T Laboratories Cambridge; scikit-learn loader",
+        "dataset_archive_sha256": hashlib.sha256(args.original_orl_archive.read_bytes()).hexdigest() if original_orl else "",
         "images": 400,
         "identities": 40,
-        "image_shape": [64, 64],
+        "image_shape_rows_columns": image_shape,
         "original_orl_shape_in_paper": [112, 92],
         "protocol": {
             "train_images_per_identity": args.train_per_class,
             "repeated_stratified_splits": args.repeats,
             "seed_rule": "base seed + 1000 * train_images_per_identity + repeat_index",
             "classification": "Euclidean 1-nearest-neighbour in the learned feature space",
-            "preprocessing": "Per-image 8-bit histogram equalization, matching the paper's stated preprocessing; scikit-learn 64x64 images are used. No test data are used to fit projections.",
+            "preprocessing": "Per-image 8-bit histogram equalization. Original PGM data are used." if original_orl else "Per-image 8-bit histogram equalization on scikit-learn's 64x64 copy. No test data are used to fit projections.",
         },
         "models": [
-            {"name": "Eigenfaces PCA", "feature_dimensions": 36},
-            {"name": "Fisherfaces LDA", "feature_dimensions": "up to 36 after PCA pre-reduction"},
-            {"name": "MDA/2-1", "feature_dimensions": f"{args.mda_dim} x 64"},
+            {"name": "Eigenfaces PCA", "feature_dimensions": args.pca_dim},
+            {"name": "Fisherfaces LDA", "feature_dimensions": f"up to {args.fisher_dim} after PCA pre-reduction capped at {args.fisher_pca_max}"},
+            {"name": "MDA/2-1", "feature_dimensions": f"{args.mda_dim} x {image_shape[1]}"},
             {"name": "MDA/2-2", "feature_dimensions": f"{args.mda_dim} x {args.mda_dim}"},
         ],
         "mda": {
             "initialization": "identity projections, as in the paper's algorithm figure",
             "max_iterations": args.max_iter,
-            "relative_objective_tolerance": args.tolerance,
+            "stopping_rule": args.mda_stopping_rule,
+            "mode_update_order": args.mda_mode_order,
+            "tolerance": args.tolerance,
             "ridge_for_singular_scatter": 1e-6,
             "projection_normalization": args.projection_normalization,
         },
-        "results_status": "Group-computed result; partial reproduction, not a direct reproduction of the paper's original preprocessing or best-tuned table.",
+        "results_status": (
+            "Original-resolution follow-up: uses the paper's ORL image dimensions and stated preprocessing, "
+            "but random seeds and complete feature-selection settings are not specified in the paper; this is "
+            "not an exact reproduction of its best-tuned Table I."
+            if original_orl else
+            "Group-computed result; partial reproduction, not a direct reproduction of the paper's original preprocessing or best-tuned table."
+        ),
         "summary": summary,
     }
     (args.output_dir / "summary.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")

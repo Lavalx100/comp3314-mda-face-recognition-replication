@@ -1,0 +1,5 @@
+train_per_class,repeat,seed,method,accuracy,fit_and_predict_seconds
+2,1,5314,Eigenfaces PCA,0.725,0.0357888339785859
+2,1,5314,Fisherfaces LDA,0.7125,0.03250254096928984
+2,1,5314,MDA/2-1,0.84375,0.34222591697471216
+2,1,5314,MDA/2-2,0.56875,0.1917246250086464

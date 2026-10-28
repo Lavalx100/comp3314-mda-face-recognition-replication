@@ -1,0 +1,82 @@
+{
+  "paper": "Yan et al., Multilinear Discriminant Analysis for Face Recognition (IEEE TIP, 2007)",
+  "paper_url": "https://mmlab.ie.cuhk.edu.hk/archive/2007/IP07_face02.pdf",
+  "dataset": "Original-resolution AT&T/ORL Database of Faces",
+  "dataset_archive_url": "https://www.cl.cam.ac.uk/research/dtg/attarchive/pub/data/att_faces.zip",
+  "dataset_credit": "Olivetti Research Laboratory, The ORL Database of Faces (1992\u20131994).",
+  "images": 400,
+  "identities": 40,
+  "image_shape_rows_columns": [
+    112,
+    92
+  ],
+  "original_orl_shape_in_paper": [
+    112,
+    92
+  ],
+  "protocol": {
+    "train_images_per_identity": [
+      2
+    ],
+    "repeated_stratified_splits": 1,
+    "seed_rule": "base seed + 1000 * train_images_per_identity + repeat_index",
+    "classification": "Euclidean 1-nearest-neighbour in the learned feature space",
+    "preprocessing": "Per-image 8-bit histogram equalization. Original PGM data are used."
+  },
+  "models": [
+    {
+      "name": "Eigenfaces PCA",
+      "feature_dimensions": 36
+    },
+    {
+      "name": "Fisherfaces LDA",
+      "feature_dimensions": "up to 36 after PCA pre-reduction"
+    },
+    {
+      "name": "MDA/2-1",
+      "feature_dimensions": "6 x 64"
+    },
+    {
+      "name": "MDA/2-2",
+      "feature_dimensions": "6 x 6"
+    }
+  ],
+  "mda": {
+    "initialization": "identity projections, as in the paper's algorithm figure",
+    "max_iterations": 2,
+    "relative_objective_tolerance": 0.0001,
+    "ridge_for_singular_scatter": 1e-06,
+    "projection_normalization": "unit_l2"
+  },
+  "results_status": "Original-resolution follow-up: uses the paper's ORL image dimensions and stated preprocessing, but random seeds and complete feature-selection settings are not specified in the paper; this is not an exact reproduction of its best-tuned Table I.",
+  "summary": [
+    {
+      "train_per_class": 2,
+      "method": "Eigenfaces PCA",
+      "repeats": 1,
+      "mean_accuracy": 0.725,
+      "std_accuracy": 0.0
+    },
+    {
+      "train_per_class": 2,
+      "method": "Fisherfaces LDA",
+      "repeats": 1,
+      "mean_accuracy": 0.7125,
+      "std_accuracy": 0.0
+    },
+    {
+      "train_per_class": 2,
+      "method": "MDA/2-1",
+      "repeats": 1,
+      "mean_accuracy": 0.84375,
+      "std_accuracy": 0.0
+    },
+    {
+      "train_per_class": 2,
+      "method": "MDA/2-2",
+      "repeats": 1,
+      "mean_accuracy": 0.56875,
+      "std_accuracy": 0.0
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+train_per_class,method,row_dim,col_dim,feature_count,repeats,mean_accuracy,std_accuracy,selection_basis
+2,Eigenface,,,78,1,0.765625,0.0,"highest mean probe accuracy over the predeclared sweep; optimistic, not unbiased"
+2,Fisherface,,,19,1,0.746875,0.0,"highest mean probe accuracy over the predeclared sweep; optimistic, not unbiased"
+2,MDA/2-1 (row mode),7,92,644,1,0.859375,0.0,"highest mean probe accuracy over the predeclared sweep; optimistic, not unbiased"
+2,MDA/2-2,60,1,60,1,0.646875,0.0,"highest mean probe accuracy over the predeclared sweep; optimistic, not unbiased"
