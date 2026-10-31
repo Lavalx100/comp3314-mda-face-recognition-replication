@@ -33,7 +33,7 @@ def render(summary_path: Path, output_path: Path) -> None:
     low = min(lookup.values())
     high = max(lookup.values())
 
-    width, height = 1260, 1120
+    width, height = 1260, 1150
     panel_w, panel_h = 610, 500
     cell = min(34, 390 / max(len(col_dims), len(row_dims)))
     left, top = 105, 76
@@ -81,7 +81,7 @@ def render(summary_path: Path, output_path: Path) -> None:
         f'<text x="{legend_x}" y="{legend_y-12}" font-family="Arial,sans-serif" font-size="11" fill="#51616d">Mean probe accuracy (%)</text>',
         f'<text x="{legend_x}" y="{legend_y+legend_h+18}" font-family="Arial,sans-serif" font-size="10" fill="#51616d">{low:.0f}%</text>',
         f'<text x="{legend_x+legend_w*8}" y="{legend_y+legend_h+18}" text-anchor="end" font-family="Arial,sans-serif" font-size="10" fill="#51616d">{high:.0f}%</text>',
-        '<text x="40" y="1090" font-family="Arial,sans-serif" font-size="12" fill="#9a4b32">Each panel uses the common color scale. Selecting the highest probe cell is optimistic; use the full curve and held-out validation for final model selection.</text>',
+        '<text x="40" y="1120" font-family="Arial,sans-serif" font-size="12" fill="#9a4b32">Each panel uses the common color scale. Selecting the highest probe cell is optimistic; use the full curve and held-out validation for final model selection.</text>',
         '</svg>',
     ])
     output_path.parent.mkdir(parents=True, exist_ok=True)

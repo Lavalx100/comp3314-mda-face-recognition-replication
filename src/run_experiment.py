@@ -379,8 +379,8 @@ def method_features(
 
 
 def write_svg(summary: list[dict], output: Path) -> None:
-    width, height = 820, 470
-    left, right, top, bottom = 78, 24, 32, 72
+    width, height = 820, 520
+    left, right, top, bottom = 78, 24, 32, 122
     plot_w, plot_h = width - left - right, height - top - bottom
     colors = {
         "Eigenfaces PCA": "#537895",
@@ -428,7 +428,7 @@ def write_svg(summary: list[dict], output: Path) -> None:
         if points:
             parts.append(f'<polyline points="{" ".join(points)}" fill="none" stroke="{colors[method]}" stroke-width="2.7" stroke-linejoin="round" stroke-linecap="round"/>')
 
-    legend_x, legend_y = left + 6, height - 27
+    legend_x, legend_y = left + 6, top + plot_h + 75
     for i, method in enumerate(methods):
         x = legend_x + (i % 2) * 260
         y = legend_y + (i // 2) * 21
@@ -436,7 +436,7 @@ def write_svg(summary: list[dict], output: Path) -> None:
         parts.append(f'<text x="{x+29}" y="{y}" font-family="Arial" font-size="12" fill="#263746">{method}</text>')
 
     parts.extend([
-        f'<text x="{left+plot_w/2:.1f}" y="{height-8}" text-anchor="middle" font-family="Arial" font-size="13" fill="#263746">Training images per identity</text>',
+        f'<text x="{left+plot_w/2:.1f}" y="{top+plot_h+52}" text-anchor="middle" font-family="Arial" font-size="13" fill="#263746">Training images per identity</text>',
         '<text transform="translate(20 220) rotate(-90)" text-anchor="middle" font-family="Arial" font-size="13" fill="#263746">Test accuracy</text>',
         '</svg>',
     ])

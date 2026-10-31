@@ -1,5 +1,11 @@
 # Change log
 
+## 2026-10-31 — Visualization layout fix
+
+- Reserved separate vertical space for the x-axis title and two-row legend in every saved accuracy chart; regenerated all 13 result charts and the historical chart asset from their existing CSV summaries.
+- Added space below the dimension heatmap's rotated axis labels and regenerated it so the explanatory note no longer crowds the labels.
+- Chart values are unchanged; no experiments were rerun.
+
 ## 2026-10-31 — Repository cleanup
 
 - Removed a historical editor screenshot that exposed a local filesystem path and unrelated workspace tabs, then removed it from all Git history.
