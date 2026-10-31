@@ -1,5 +1,12 @@
 # Change log
 
+## 2026-10-31 — Repository cleanup
+
+- Removed a historical editor screenshot that exposed a local filesystem path and unrelated workspace tabs, then removed it from all Git history.
+- Removed the compiled PDF for the superseded 64×64 preliminary report; retained and labeled its LaTeX source as an old draft.
+- Added Git ignore rules for local dataset folders and PGM face images, and updated the evidence index, progress record, and team handoff.
+- Kept the GitHub repository private pending the group's release decision.
+
 ## 2026-10-28 — Original-resolution ORL reproduction follow-up
 
 - Added direct loading of the official 112×92 Cambridge ORL PGM archive and recorded its checksum; no face images are committed.

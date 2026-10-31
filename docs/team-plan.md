@@ -52,7 +52,7 @@ Use the same paired-analysis command with the alternate run's `raw_results.csv`.
 - [x] 30 splits per gallery count under both normalization settings.
 - [x] Original-resolution 112×92 fixed-setting split-level runs complete under both projection normalizations; the 5-repeat dimension sweep is complete.
 - [x] Raw CSVs, summary CSV/JSON, charts, objective traces, dimension heatmap, and paired comparisons saved.
-- [x] Three-page report draft compiled; see [`report PDF`](../output/pdf/COMP3314_Group27_MDA_Partial_Reproduction.pdf).
+- [x] Preliminary three-page report source exists for the earlier 64×64 study; the stale compiled PDF was removed during cleanup. Update the draft with the original-resolution study before submission.
 - [ ] Person 2 completes independent algorithm and table audit.
 - [ ] Person 4 integrates final analysis into the 3–4-page submission and presentation.
 - [ ] All four rehearse the talk and Q&A; team reviews the repository before any public release.

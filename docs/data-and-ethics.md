@@ -8,6 +8,7 @@ Two data copies are used and kept separate:
 The images are faces and can be identifying. This repository therefore:
 
 - excludes `.cache/`, archives, and extracted face images from Git;
+- ignores local `data/` folders and `.pgm` files as an extra guard against accidentally committing face images;
 - stores only aggregate metrics, split-level scores, code, and non-identifying plots;
 - does not publish face-image screenshots or example face crops;
 - asks contributors to check upstream terms before redistributing any image data.

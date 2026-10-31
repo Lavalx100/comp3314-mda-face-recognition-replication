@@ -1,6 +1,6 @@
 # Project progress
 
-**Last updated:** 2026-10-28 (Hong Kong time)
+**Last updated:** 2026-10-31 (Hong Kong time)
 
 **Project:** COMP3314 Group 27, MDA face-recognition reproduction study
 
@@ -23,9 +23,15 @@
 | Smoke run | Pass; one repeat at gallery sizes 2 and 5, not evidence | [`smoke-check`](../results/smoke-check/) |
 | Independent algorithm-fidelity review | Pending | Ask a teammate to audit Sections II and IV and log discrepancies |
 | Original-resolution fidelity | Data load, fixed-split studies, and declared dimension sweep complete; exact author settings are unavailable | [experiment record](experiments/2026-10-28-original-resolution-reproduction.md), [ORL outputs](../results/2026-10-28-original-resolution-30-repeat/) |
-| Final report and presentation | Three-page report PDF and presentation outline are drafts; group review pending | [`report source`](../report/main.tex), [`compiled PDF`](../output/pdf/COMP3314_Group27_MDA_Partial_Reproduction.pdf), and [`slides`](../slides/) |
+| Final report and presentation | Preliminary report source covers the older 64×64 study; final report and presentation still need group review | [`report source`](../report/main.tex), [`slides`](../slides/), and current result records |
 | Project overview website | Complete; local and unpublished | [`site/index.html`](../site/index.html) |
 | Public GitHub release for optional bonus | Group decision pending; current remote is private | Review repository contents, attribution, course policy, and data exclusions first |
+
+## Repository cleanup — 2026-10-31
+
+- Removed a historical VS Code screenshot that exposed a local path and unrelated workspace tabs, including its evidence-index entry.
+- Removed the compiled PDF for the older 64×64 draft so it cannot be mistaken for the current report; the LaTeX source remains labeled as preliminary.
+- Rewrote Git history to remove the screenshot from earlier commits. The GitHub remote remains private.
 
 ## Completed work
 

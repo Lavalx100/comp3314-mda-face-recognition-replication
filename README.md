@@ -91,11 +91,12 @@ docs/paper-notes.md        Paper summary and original ORL comparison values
 docs/experiments/          Dated experiment records and handoff notes
 docs/PROGRESS.md           Status, completed work, and next steps
 docs/CHANGELOG.md          Human-readable project change history
-report/main.tex            Editable three-page report draft
-output/pdf/                Earlier partial-study report PDF; update for final submission
+report/main.tex            Preliminary report source based on the earlier 64×64 study; update before submission
 slides/                    Nine-minute presentation outline and Q&A prep
 site/index.html            Local research overview, plan, results, and team roles
 ```
+
+The report source is preliminary and describes the earlier 64×64 study. It needs updating with the original-resolution results before submission; the old compiled PDF is not included so it cannot be mistaken for the final report.
 
 ## Original-resolution fixed-setting results
 
