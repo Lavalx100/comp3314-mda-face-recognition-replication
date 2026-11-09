@@ -13,10 +13,16 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import time
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
+
+# On macOS, NumPy uses Accelerate; set vecLib before loading NumPy because
+# threadpoolctl cannot currently inspect/control that backend.
+os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
 import numpy as np
 from sklearn.datasets import fetch_olivetti_faces
@@ -35,13 +41,13 @@ def parse_sizes(value: str) -> list[int]:
     return sorted(set(sizes))
 
 
-def load_faces(data_home: Path) -> tuple[np.ndarray, np.ndarray]:
+def load_faces(data_home: Path, histogram_levels: int = 256) -> tuple[np.ndarray, np.ndarray]:
     bunch = fetch_olivetti_faces(
         data_home=str(data_home),
         shuffle=False,
         download_if_missing=True,
     )
-    images = equalize_histogram(np.asarray(bunch.images, dtype=np.float64))
+    images = equalize_histogram(np.asarray(bunch.images, dtype=np.float64), histogram_levels)
     labels = np.asarray(bunch.target, dtype=np.int64)
     if images.ndim != 3 or images.shape[0] != 400 or len(np.unique(labels)) != 40:
         raise ValueError(f"Unexpected Olivetti shape/classes: {images.shape}")
@@ -51,15 +57,24 @@ def load_faces(data_home: Path) -> tuple[np.ndarray, np.ndarray]:
 def load_experiment_data(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     if args.dataset == "orl-original":
         images, labels = load_original_orl(args.original_orl_archive)
-        return equalize_histogram(images), labels
-    return load_faces(args.data_home)
+        return equalize_histogram(images, args.histogram_levels), labels
+    return load_faces(args.data_home, args.histogram_levels)
 
 
-def equalize_histogram(images: np.ndarray) -> np.ndarray:
-    """Apply per-image 8-bit histogram equalization as stated in the paper."""
+def equalize_histogram(images: np.ndarray, output_levels: int = 256) -> np.ndarray:
+    """Equalize each image independently and quantize to the requested levels.
+
+    The paper only says that histogram equalization was applied. The 64-level
+    option approximates MATLAB ``histeq(I)``'s documented default; 256 preserves
+    the earlier project protocol. The article does not identify the software or
+    equalization settings used by its authors.
+    """
+    if not 2 <= output_levels <= 256:
+        raise ValueError("Histogram equalization output_levels must be between 2 and 256.")
     quantized = np.clip(np.rint(images * 255.0), 0, 255).astype(np.uint8)
     output = np.empty_like(quantized)
     pixel_count = quantized.shape[1] * quantized.shape[2]
+    output_values = np.rint(np.linspace(0, 255, output_levels)).astype(np.uint8)
     for index, image in enumerate(quantized):
         histogram = np.bincount(image.ravel(), minlength=256)
         cdf = histogram.cumsum()
@@ -69,8 +84,9 @@ def equalize_histogram(images: np.ndarray) -> np.ndarray:
             continue
         cdf_min = int(cdf[occupied[0]])
         denominator = max(pixel_count - cdf_min, 1)
-        lookup = np.clip(np.rint((cdf - cdf_min) * 255.0 / denominator), 0, 255).astype(np.uint8)
-        output[index] = lookup[image]
+        cdf_fraction = np.clip((cdf - cdf_min) / denominator, 0.0, 1.0)
+        lookup = np.rint(cdf_fraction * (output_levels - 1)).astype(np.int64)
+        output[index] = output_values[lookup[image]]
     return output.astype(np.float64) / 255.0
 
 
@@ -155,7 +171,29 @@ def leading_generalized_eigenvectors(
     return projection
 
 
-def mode_scatter(projected: np.ndarray, labels: np.ndarray, mode: int) -> tuple[np.ndarray, np.ndarray]:
+@dataclass(frozen=True)
+class ClassGrouping:
+    """Label-derived arrays reused by every scatter update in one split."""
+
+    class_labels: np.ndarray
+    class_index: np.ndarray
+    class_counts: np.ndarray
+    membership: np.ndarray
+
+
+def make_class_grouping(labels: np.ndarray) -> ClassGrouping:
+    class_labels, class_index = np.unique(labels, return_inverse=True)
+    class_counts = np.bincount(class_index).astype(np.float64)
+    membership = np.eye(len(class_labels), dtype=np.float64)[class_index]
+    return ClassGrouping(class_labels, class_index, class_counts, membership)
+
+
+def mode_scatter(
+    projected: np.ndarray,
+    labels: np.ndarray,
+    mode: int,
+    grouping: ClassGrouping | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     """Pool the LDA scatters of matching columns in a mode-unfolded tensor.
 
     For mode 0, each column of each image contributes a row-mode vector. For
@@ -171,18 +209,23 @@ def mode_scatter(projected: np.ndarray, labels: np.ndarray, mode: int) -> tuple[
         raise ValueError("MDA supports image modes 0 and 1 in this implementation.")
 
     dimension = coordinate_samples.shape[-1]
-    between = np.zeros((dimension, dimension), dtype=np.float64)
-    within = np.zeros_like(between)
-    class_labels = np.unique(labels)
+    grouping = grouping or make_class_grouping(labels)
+    class_labels = grouping.class_labels
+    class_index = grouping.class_index
+    class_counts = grouping.class_counts
     overall = coordinate_samples.mean(axis=1)
+    grouped_samples = coordinate_samples.transpose(1, 0, 2).reshape(len(labels), -1)
+    class_sums = (grouping.membership.T @ grouped_samples).reshape(
+        len(class_labels), coordinate_samples.shape[0], dimension
+    )
+    class_means = class_sums / class_counts[:, None, None]
 
-    for label in class_labels:
-        group = coordinate_samples[:, labels == label, :]
-        class_mean = group.mean(axis=1)
-        delta = class_mean - overall
-        between += group.shape[1] * (delta.T @ delta)
-        centered = group - class_mean[:, None, :]
-        within += np.einsum("kni,knj->ij", centered, centered, optimize=True)
+    mean_offsets = class_means - overall[None, :, :]
+    between = np.einsum(
+        "c,cki,ckj->ij", class_counts, mean_offsets, mean_offsets, optimize=True
+    )
+    centered = coordinate_samples - class_means[class_index].transpose(1, 0, 2)
+    within = np.einsum("kni,knj->ij", centered, centered, optimize=True)
     return between, within
 
 
@@ -191,26 +234,48 @@ def apply_mda(images: np.ndarray, row_projection: np.ndarray, col_projection: np
     return projected.reshape(len(images), -1)
 
 
-def fit_mda(
+def fit_mda_projections(
     train_images: np.ndarray,
     train_labels: np.ndarray,
-    test_images: np.ndarray,
     components: tuple[int | None, int | None],
     max_iter: int,
     tolerance: float,
     projection_normalization: str,
     stopping_rule: str = "objective",
     mode_order: str = "row_first",
+    paper_epsilon: float = 1e-4,
+    track_objective_history: bool = True,
+    scatter_grouping: ClassGrouping | None = None,
+    initial_projections: tuple[np.ndarray, np.ndarray] | None = None,
+    initial_iterations: int = 0,
+    initial_history: list[float] | None = None,
 ) -> tuple[np.ndarray, np.ndarray, list[float]]:
+    """Learn MDA axes; optional initial state can reuse a validated prefix."""
     height, width = train_images.shape[1:]
-    row_projection = np.eye(height, dtype=np.float64)
-    col_projection = np.eye(width, dtype=np.float64)
-    history: list[float] = []
+    if initial_projections is None:
+        row_projection = np.eye(height, dtype=np.float64)
+        col_projection = np.eye(width, dtype=np.float64)
+    else:
+        row_projection, col_projection = initial_projections
+        if row_projection.shape[0] != height or col_projection.shape[0] != width:
+            raise ValueError("Initial MDA projections do not match the input image shape.")
+    if not 0 <= initial_iterations <= max_iter:
+        raise ValueError("initial_iterations must be between zero and max_iter.")
+    history = list(initial_history) if initial_history is not None else [float("nan")] * initial_iterations
+    if len(history) != initial_iterations:
+        raise ValueError("initial_history must contain one entry for each reused iteration.")
     if mode_order not in {"row_first", "column_first"}:
         raise ValueError(f"Unknown MDA mode-update order: {mode_order}")
+    if paper_epsilon <= 0:
+        raise ValueError("paper_epsilon must be positive.")
+    if stopping_rule == "objective" and not track_objective_history:
+        raise ValueError("Objective-based stopping requires objective history tracking.")
+    if stopping_rule == "objective" and initial_iterations and not np.isfinite(history[-1]):
+        raise ValueError("Objective-based stopping needs the objective for the reused prefix.")
+    scatter_grouping = scatter_grouping or make_class_grouping(train_labels)
     mode_sequence = (0, 1) if mode_order == "row_first" else (1, 0)
 
-    for iteration in range(max_iter):
+    for iteration in range(initial_iterations, max_iter):
         previous_row = row_projection.copy()
         previous_col = col_projection.copy()
         for mode in mode_sequence:
@@ -218,7 +283,7 @@ def fit_mda(
                 partially_projected = np.einsum(
                     "nhw,wb->nhb", train_images, col_projection, optimize=True
                 )
-                between, within = mode_scatter(partially_projected, train_labels, mode=0)
+                between, within = mode_scatter(partially_projected, train_labels, mode=0, grouping=scatter_grouping)
                 row_projection = leading_generalized_eigenvectors(
                     between, within, components[0], projection_normalization=projection_normalization
                 )
@@ -226,17 +291,21 @@ def fit_mda(
                 partially_projected = np.einsum(
                     "ah,nhw->naw", row_projection.T, train_images, optimize=True
                 )
-                between, within = mode_scatter(partially_projected, train_labels, mode=1)
+                between, within = mode_scatter(partially_projected, train_labels, mode=1, grouping=scatter_grouping)
                 col_projection = leading_generalized_eigenvectors(
                     between, within, components[1], projection_normalization=projection_normalization
                 )
 
-        embeddings = apply_mda(train_images, row_projection, col_projection)
-        # The output may have thousands of features during a dimension sweep.
-        # Only the scatter traces are needed for this diagnostic; allocating the
-        # full square scatter matrices would be wasteful and scale quadratically.
-        objective = fisher_trace_ratio(embeddings, train_labels)
-        history.append(objective)
+        if track_objective_history:
+            embeddings = apply_mda(train_images, row_projection, col_projection)
+            # The output may have thousands of features during a dimension sweep.
+            # Only the scatter traces are needed for this diagnostic; allocating the
+            # full square scatter matrices would be wasteful and scale quadratically.
+            history.append(fisher_trace_ratio(embeddings, train_labels))
+        else:
+            # Projection-change stopping does not use the objective. Keep one
+            # placeholder per iteration so len(history) remains the iteration count.
+            history.append(float("nan"))
         if stopping_rule == "objective" and len(history) > 1:
             change = abs(history[-1] - history[-2]) / max(abs(history[-2]), 1e-12)
             if change < tolerance:
@@ -256,30 +325,119 @@ def fit_mda(
             if changes and all(changes):
                 break
         elif stopping_rule == "paper_figure" and iteration + 1 > 2:
-            # Fig. 3 in Yan et al. stops after t > 2 when each projection's
-            # Frobenius change is below its requested output dimension m'_k.
-            # The paper does not state an additional tolerance multiplier.
+            # Fig. 3 uses ||U_k^t-U_k^(t-1)||_F < m'_k*m_k*epsilon.
+            # The paper does not report epsilon; record the selected value.
             changes = []
             if components[0] is not None:
                 changes.append(
                     np.linalg.norm(row_projection - previous_row, ord="fro")
-                    < components[0]
+                    < components[0] * height * paper_epsilon
                 )
             if components[1] is not None:
                 changes.append(
                     np.linalg.norm(col_projection - previous_col, ord="fro")
-                    < components[1]
+                    < components[1] * width * paper_epsilon
                 )
             if changes and all(changes):
                 break
         elif stopping_rule not in {"objective", "projection_change", "paper_figure"}:
             raise ValueError(f"Unknown MDA stopping rule: {stopping_rule}")
 
-    return (
-        apply_mda(train_images, row_projection, col_projection),
-        apply_mda(test_images, row_projection, col_projection),
-        history,
+    return row_projection, col_projection, history
+
+
+def fit_mda(
+    train_images: np.ndarray,
+    train_labels: np.ndarray,
+    test_images: np.ndarray,
+    components: tuple[int | None, int | None],
+    max_iter: int,
+    tolerance: float,
+    projection_normalization: str,
+    stopping_rule: str = "objective",
+    mode_order: str = "row_first",
+    paper_epsilon: float = 1e-4,
+    track_objective_history: bool = True,
+    scatter_grouping: ClassGrouping | None = None,
+    initial_projections: tuple[np.ndarray, np.ndarray] | None = None,
+    initial_iterations: int = 0,
+    initial_history: list[float] | None = None,
+) -> tuple[np.ndarray, np.ndarray, list[float]]:
+    row_projection, col_projection, history = fit_mda_projections(
+        train_images,
+        train_labels,
+        components=components,
+        max_iter=max_iter,
+        tolerance=tolerance,
+        projection_normalization=projection_normalization,
+        stopping_rule=stopping_rule,
+        mode_order=mode_order,
+        paper_epsilon=paper_epsilon,
+        track_objective_history=track_objective_history,
+        scatter_grouping=scatter_grouping,
+        initial_projections=initial_projections,
+        initial_iterations=initial_iterations,
+        initial_history=initial_history,
     )
+    train_features = apply_mda(train_images, row_projection, col_projection)
+    if not track_objective_history:
+        # In full-grid runs this final diagnostic is recorded but never selects
+        # dimensions or affects the paper's projection-change stopping rule.
+        if not history:
+            history.append(float("nan"))
+        history[-1] = fisher_trace_ratio(train_features, train_labels)
+    test_features = apply_mda(test_images, row_projection, col_projection)
+    return train_features, test_features, history
+
+
+def precompute_mda22_first_iteration(
+    train_images: np.ndarray,
+    train_labels: np.ndarray,
+    dimension_pairs: Iterable[tuple[int, int]],
+    projection_normalization: str,
+    scatter_grouping: ClassGrouping | None = None,
+) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+    """Reuse MDA's first row-then-column update for every feasible dimension pair.
+
+    At identity initialization, the first row update is independent of both
+    requested output dimensions. For each row dimension, the following column
+    update is independent of requested column dimension. The returned row basis
+    and full column basis let each pair take the same leading columns as a
+    separate fit, while avoiding those repeated scatter/eigensolver calls.
+    """
+    pairs_by_row: dict[int, list[int]] = defaultdict(list)
+    for row_dim, col_dim in dimension_pairs:
+        pairs_by_row[row_dim].append(col_dim)
+    if not pairs_by_row:
+        return {}
+    grouping = scatter_grouping or make_class_grouping(train_labels)
+    max_row_dim = max(pairs_by_row)
+    row_between, row_within = mode_scatter(
+        train_images, train_labels, mode=0, grouping=grouping
+    )
+    full_row_basis = leading_generalized_eigenvectors(
+        row_between,
+        row_within,
+        max_row_dim,
+        projection_normalization=projection_normalization,
+    )
+    cache: dict[int, tuple[np.ndarray, np.ndarray]] = {}
+    for row_dim, col_dims in pairs_by_row.items():
+        row_projection = full_row_basis[:, :row_dim]
+        partially_projected = np.einsum(
+            "ah,nhw->naw", row_projection.T, train_images, optimize=True
+        )
+        col_between, col_within = mode_scatter(
+            partially_projected, train_labels, mode=1, grouping=grouping
+        )
+        full_col_basis = leading_generalized_eigenvectors(
+            col_between,
+            col_within,
+            max(col_dims),
+            projection_normalization=projection_normalization,
+        )
+        cache[row_dim] = (row_projection, full_col_basis)
+    return cache
 
 
 def fit_pca(train_images: np.ndarray, test_images: np.ndarray, n_components: int = 36) -> tuple[np.ndarray, np.ndarray]:
@@ -344,6 +502,7 @@ def method_features(
     projection_normalization: str,
     mda_stopping_rule: str = "objective",
     mda_mode_order: str = "row_first",
+    paper_epsilon: float = 1e-4,
     pca_dim: int = 36,
     fisher_dim: int = 36,
     fisher_pca_max: int | None = 100,
@@ -364,7 +523,7 @@ def method_features(
             train_images, train_labels, test_images,
             components=(mda_dim, None), max_iter=max_iter, tolerance=tolerance,
             projection_normalization=projection_normalization, stopping_rule=mda_stopping_rule,
-            mode_order=mda_mode_order,
+            mode_order=mda_mode_order, paper_epsilon=paper_epsilon,
         )
         return train, test, history
     if name == "MDA/2-2":
@@ -372,7 +531,7 @@ def method_features(
             train_images, train_labels, test_images,
             components=(mda_dim, mda_dim), max_iter=max_iter, tolerance=tolerance,
             projection_normalization=projection_normalization, stopping_rule=mda_stopping_rule,
-            mode_order=mda_mode_order,
+            mode_order=mda_mode_order, paper_epsilon=paper_epsilon,
         )
         return train, test, history
     raise ValueError(f"Unknown method: {name}")
@@ -465,6 +624,7 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict]]:
                     projection_normalization=args.projection_normalization,
                     mda_stopping_rule=args.mda_stopping_rule,
                     mda_mode_order=args.mda_mode_order,
+                    paper_epsilon=args.paper_epsilon,
                     pca_dim=args.pca_dim,
                     fisher_dim=args.fisher_dim,
                     fisher_pca_max=args.fisher_pca_max,
@@ -552,6 +712,18 @@ def main() -> None:
         help="Which image mode is optimized first in each MDA iteration.",
     )
     parser.add_argument(
+        "--paper-epsilon",
+        type=float,
+        default=1e-4,
+        help="Epsilon in the Fig. 3 projection-change rule; the article does not specify it.",
+    )
+    parser.add_argument(
+        "--histogram-levels",
+        type=int,
+        default=256,
+        help="Output intensity levels per image; 64 approximates MATLAB histeq's default.",
+    )
+    parser.add_argument(
         "--projection-normalization",
         choices=("unit_l2", "within_scatter"),
         default="unit_l2",
@@ -560,6 +732,10 @@ def main() -> None:
     args = parser.parse_args()
     if min(args.repeats, args.mda_dim, args.pca_dim, args.fisher_dim, args.max_iter) < 1:
         parser.error("repeats and all feature dimensions/iteration limits must be positive")
+    if not 2 <= args.histogram_levels <= 256:
+        parser.error("histogram-levels must be between 2 and 256")
+    if args.paper_epsilon <= 0:
+        parser.error("paper-epsilon must be positive")
 
     if args.dataset == "olivetti64":
         args.data_home.mkdir(parents=True, exist_ok=True)
@@ -587,7 +763,7 @@ def main() -> None:
             "repeated_stratified_splits": args.repeats,
             "seed_rule": "base seed + 1000 * train_images_per_identity + repeat_index",
             "classification": "Euclidean 1-nearest-neighbour in the learned feature space",
-            "preprocessing": "Per-image 8-bit histogram equalization. Original PGM data are used." if original_orl else "Per-image 8-bit histogram equalization on scikit-learn's 64x64 copy. No test data are used to fit projections.",
+            "preprocessing": f"Per-image 8-bit histogram equalization to {args.histogram_levels} output levels. Original PGM data are used." if original_orl else f"Per-image 8-bit histogram equalization to {args.histogram_levels} output levels on scikit-learn's 64x64 copy. No test data are used to fit projections.",
         },
         "models": [
             {"name": "Eigenfaces PCA", "feature_dimensions": args.pca_dim},
@@ -601,6 +777,7 @@ def main() -> None:
             "stopping_rule": args.mda_stopping_rule,
             "mode_update_order": args.mda_mode_order,
             "tolerance": args.tolerance,
+            "paper_epsilon": args.paper_epsilon,
             "ridge_for_singular_scatter": 1e-6,
             "projection_normalization": args.projection_normalization,
         },

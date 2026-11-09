@@ -1,0 +1,26 @@
+key,value
+paper,"Yan et al. (2007), IEEE TIP 16(1), 212-220"
+paper_url,https://mmlab.ie.cuhk.edu.hk/archive/2007/IP07_face02.pdf
+dataset,Original-resolution AT&T/ORL Database of Faces
+dataset_url,https://www.cl.cam.ac.uk/research/dtg/attarchive/pub/data/att_faces.zip
+dataset_credit,"Olivetti Research Laboratory, The ORL Database of Faces (1992–1994)."
+dataset_archive_sha256,509d763bd2276aa054d260d7f1000e8be212738134f2f83d8ff13bc2adf1c8ec
+dataset_shape_rows_columns,112x92
+images_and_identities,400 images; 40 identities; 10 images each
+preprocessing,Per-image 8-bit histogram equalization to 64 output levels; converted from original 8-bit PGM
+histogram_output_levels,64
+gallery_counts,"2,3,4,5"
+repeats,5
+seed_rule,3314 + 1000 * gallery_count + zero_based_repeat
+classifier,Euclidean 1-nearest-neighbour; matrix embeddings flattened (Frobenius distance)
+projection_normalization,unit_l2
+mda_update_order,row_first
+mda_ridge_relative_to_mean_within_scatter,1e-6
+mda_stopping,paper Fig. 3: projection Frobenius change < output_dim * input_dim * epsilon after iteration 2; epsilon=0.0001; max 10
+mda2_2_dimension_grid,all theorem-feasible integer dimension pairs
+mda22_feasible_pair_count,10130
+workers,8
+mode_scatter_aggregation,class membership matrix; same class-wise scatter equations
+mda22_objective_log,final objective per dimension/split; stopping follows projection change
+selection_warning,"Best mean probe accuracy over this sweep is an optimistic, test-selected diagnostic; do not present it as an unbiased estimate."
+replication_scope,"Original-resolution, paper-style follow-up. The article does not report split seeds or exact full feature sweep, so exact Table I recreation is not possible."

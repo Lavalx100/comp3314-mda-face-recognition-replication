@@ -1,0 +1,31 @@
+{
+  "dataset": "Original Cambridge ORL PGM archive",
+  "archive_sha256": "509d763bd2276aa054d260d7f1000e8be212738134f2f83d8ff13bc2adf1c8ec",
+  "image_shape": [
+    112,
+    92
+  ],
+  "histogram_equalization_levels": 64,
+  "gallery_sizes": [
+    2,
+    3
+  ],
+  "repeats": 30,
+  "repeat_seed_rule": "seed + zero_based_repeat",
+  "base_seed": 3314,
+  "gallery_design": "Nested per identity: gallery size 2 is a subset of gallery size 3; remaining images are probes.",
+  "dimension": [
+    6,
+    6
+  ],
+  "dimension_selection": "None; fixed before evaluating probe labels.",
+  "normalizations": [
+    "unit_l2",
+    "within_scatter"
+  ],
+  "mda_update_order": "row_first",
+  "mda_stopping": "paper_figure; epsilon=1e-4; maximum 10 iterations",
+  "classifier": "Euclidean 1-nearest-neighbour",
+  "workers": 8,
+  "interpretation": "Targeted split-pairing diagnostic; not the paper-style independent-seed full-grid protocol."
+}

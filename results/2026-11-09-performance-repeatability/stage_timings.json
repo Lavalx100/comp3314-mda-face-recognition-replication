@@ -1,0 +1,136 @@
+{
+  "mode": "direct-stage-profile",
+  "normalization": "unit_l2",
+  "gallery_size": 5,
+  "data_load_seconds": 0.03186808300233679,
+  "histogram_equalization_seconds": 0.026973374995577615,
+  "split_seconds": 0.0009261250015697442,
+  "scatter_seconds": 0.6119887410168303,
+  "eigendecomposition_seconds": 0.255058463968453,
+  "fit_seconds": 1.4074718769843457,
+  "mda_iteration_seconds_per_iteration": 0.01172893230820288,
+  "other_iteration_projection_seconds": 0.5404246719990624,
+  "classification_seconds": 0.010268081998219714,
+  "profiles": [
+    {
+      "pair": [
+        2,
+        2
+      ],
+      "fit_seconds": 0.0748166669945931,
+      "classification_seconds": 0.0001545409977552481,
+      "accuracy": 0.365,
+      "iterations": 10
+    },
+    {
+      "pair": [
+        2,
+        8
+      ],
+      "fit_seconds": 0.07504983399849152,
+      "classification_seconds": 0.00010816700523719192,
+      "accuracy": 0.545,
+      "iterations": 10
+    },
+    {
+      "pair": [
+        4,
+        4
+      ],
+      "fit_seconds": 0.07512683299864875,
+      "classification_seconds": 0.00012599999899975955,
+      "accuracy": 0.75,
+      "iterations": 10
+    },
+    {
+      "pair": [
+        8,
+        8
+      ],
+      "fit_seconds": 0.08122158399783075,
+      "classification_seconds": 0.00012316700303927064,
+      "accuracy": 0.935,
+      "iterations": 10
+    },
+    {
+      "pair": [
+        16,
+        12
+      ],
+      "fit_seconds": 0.08074266699986765,
+      "classification_seconds": 0.00017133299843408167,
+      "accuracy": 0.945,
+      "iterations": 10
+    },
+    {
+      "pair": [
+        24,
+        16
+      ],
+      "fit_seconds": 0.08723545899556484,
+      "classification_seconds": 0.0002420410019112751,
+      "accuracy": 0.945,
+      "iterations": 10
+    },
+    {
+      "pair": [
+        32,
+        24
+      ],
+      "fit_seconds": 0.10289062499941792,
+      "classification_seconds": 0.00037512499693548307,
+      "accuracy": 0.96,
+      "iterations": 10
+    },
+    {
+      "pair": [
+        48,
+        24
+      ],
+      "fit_seconds": 0.11812558399833506,
+      "classification_seconds": 0.0005404999974416569,
+      "accuracy": 0.97,
+      "iterations": 10
+    },
+    {
+      "pair": [
+        56,
+        46
+      ],
+      "fit_seconds": 0.14093054099794244,
+      "classification_seconds": 0.0012064170005032793,
+      "accuracy": 0.94,
+      "iterations": 10
+    },
+    {
+      "pair": [
+        64,
+        46
+      ],
+      "fit_seconds": 0.14441433300089557,
+      "classification_seconds": 0.001185082997835707,
+      "accuracy": 0.955,
+      "iterations": 10
+    },
+    {
+      "pair": [
+        92,
+        46
+      ],
+      "fit_seconds": 0.19083566700282972,
+      "classification_seconds": 0.001734457997372374,
+      "accuracy": 0.955,
+      "iterations": 10
+    },
+    {
+      "pair": [
+        112,
+        92
+      ],
+      "fit_seconds": 0.2360820829999284,
+      "classification_seconds": 0.0043012500027543865,
+      "accuracy": 0.925,
+      "iterations": 10
+    }
+  ]
+}

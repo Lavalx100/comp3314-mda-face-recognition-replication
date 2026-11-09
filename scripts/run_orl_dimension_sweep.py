@@ -11,14 +11,22 @@ from __future__ import annotations
 
 import argparse
 import csv
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
+import os
 import sys
 import time
 from collections import defaultdict
 from pathlib import Path
 
+# NumPy on Apple Silicon uses Accelerate, which threadpoolctl does not expose.
+# Set vecLib's default before NumPy loads; callers can override this in the
+# process environment when benchmarking a different BLAS thread count.
+os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
+
 import numpy as np
+from threadpoolctl import threadpool_limits
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -30,6 +38,8 @@ from run_experiment import (  # noqa: E402
     fit_fisherfaces,
     fit_mda,
     fit_pca,
+    make_class_grouping,
+    precompute_mda22_first_iteration,
     predict_nearest_neighbor,
     stratified_split,
     write_csv,
@@ -95,6 +105,7 @@ def add_row(
     feature_count: int,
     accuracy: float,
     elapsed: float,
+    classification_elapsed: float = 0.0,
     iterations: int = 0,
     objective: float | str = "",
 ) -> None:
@@ -107,7 +118,9 @@ def add_row(
         "col_dim": col_dim,
         "feature_count": feature_count,
         "accuracy": accuracy,
-        "fit_and_predict_seconds": elapsed,
+        "fit_seconds": elapsed,
+        "classification_seconds": classification_elapsed,
+        "fit_and_predict_seconds": elapsed + classification_elapsed,
         "mda_iterations": iterations,
         "final_training_fisher_ratio": objective,
     })
@@ -122,10 +135,22 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
         "archive_sha256": archive_sha256,
         "train_per_class": args.train_per_class,
         "mda_dimensions": args.mda_dimensions,
+        "full_mda_grid": args.full_mda_grid,
         "repeats": args.repeats,
         "seed": args.seed,
         "max_iter": args.max_iter,
         "tolerance": args.tolerance,
+        "paper_epsilon": args.paper_epsilon,
+        "histogram_levels": args.histogram_levels,
+        "workers": args.workers,
+        "scatter_aggregation": "class-membership-matrix",
+        "scatter_label_grouping": "cached-per-split",
+        "first_iteration_cache": (
+            "row-first identity-initialized prefix reuse"
+            if args.mda_order == "row_first" and args.mda_stopping == "paper_figure"
+            else "disabled for this update order/stopping rule"
+        ),
+        "mda22_objective_log": "final-only",
         "projection_normalization": args.projection_normalization,
         "mda_order": args.mda_order,
         "mda_stopping": args.mda_stopping,
@@ -140,7 +165,10 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
             rows = list(csv.DictReader(handle))
         if checkpoint_objectives_path.is_file():
             with checkpoint_objectives_path.open(newline="", encoding="utf-8") as handle:
-                objective_rows = list(csv.DictReader(handle))
+                objective_rows = [
+                    row for row in csv.DictReader(handle)
+                    if row["method"] != "MDA/2-2"
+                ]
         else:
             objective_rows = []
         completed_splits = {
@@ -154,11 +182,19 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
         checkpoint_config_path.write_text(json.dumps(checkpoint_config, indent=2) + "\n", encoding="utf-8")
 
     images, labels = load_original_orl(args.archive)
-    images = equalize_histogram(images)
+    images = equalize_histogram(images, args.histogram_levels)
     height, width = images.shape[1:]
-    dimensions = args.mda_dimensions
+    dimensions = list(range(1, max(height, width) + 1)) if args.full_mda_grid else args.mda_dimensions
     row_dimensions = [dimension for dimension in dimensions if dimension <= height]
     col_dimensions = [dimension for dimension in dimensions if dimension <= width]
+    class_count = len(np.unique(labels))
+    mda22_dimensions = [
+        (row_dim, col_dim)
+        for row_dim in row_dimensions
+        for col_dim in col_dimensions
+        if row_dim <= (class_count - 1) * col_dim
+        and col_dim <= (class_count - 1) * row_dim
+    ]
 
     for train_count in args.train_per_class:
         for repeat_index in range(args.repeats):
@@ -169,6 +205,7 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
             train_idx, test_idx = stratified_split(labels, train_count, seed)
             x_train, x_test = images[train_idx], images[test_idx]
             y_train, y_test = labels[train_idx], labels[test_idx]
+            scatter_grouping = make_class_grouping(y_train)
             max_eigenfaces = min(len(train_idx) - 1, height * width)
             max_fisherfaces = min(len(np.unique(y_train)) - 1, 39)
 
@@ -176,11 +213,16 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
             pca_train, pca_test = fit_pca(x_train, x_test, max_eigenfaces)
             elapsed = time.perf_counter() - started
             for dimension in range(1, pca_train.shape[1] + 1):
+                classification_started = time.perf_counter()
+                accuracy = accuracy_for_dimension(
+                    pca_train, y_train, pca_test, y_test, dimension
+                )
+                classification_elapsed = time.perf_counter() - classification_started
                 add_row(
                     rows, train_count=train_count, repeat=repeat_index + 1, seed=seed,
                     method="Eigenface", row_dim="", col_dim="", feature_count=dimension,
-                    accuracy=accuracy_for_dimension(pca_train, y_train, pca_test, y_test, dimension),
-                    elapsed=elapsed,
+                    accuracy=accuracy, elapsed=elapsed,
+                    classification_elapsed=classification_elapsed,
                 )
 
             started = time.perf_counter()
@@ -191,11 +233,16 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
             )
             elapsed = time.perf_counter() - started
             for dimension in range(1, fisher_train.shape[1] + 1):
+                classification_started = time.perf_counter()
+                accuracy = accuracy_for_dimension(
+                    fisher_train, y_train, fisher_test, y_test, dimension
+                )
+                classification_elapsed = time.perf_counter() - classification_started
                 add_row(
                     rows, train_count=train_count, repeat=repeat_index + 1, seed=seed,
                     method="Fisherface", row_dim="", col_dim="", feature_count=dimension,
-                    accuracy=accuracy_for_dimension(fisher_train, y_train, fisher_test, y_test, dimension),
-                    elapsed=elapsed,
+                    accuracy=accuracy, elapsed=elapsed,
+                    classification_elapsed=classification_elapsed,
                 )
 
             max_row_dim = min(height, (len(np.unique(y_train)) - 1) * width)
@@ -206,16 +253,23 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
                 projection_normalization=args.projection_normalization,
                 stopping_rule=args.mda_stopping,
                 mode_order=args.mda_order,
+                paper_epsilon=args.paper_epsilon,
+                scatter_grouping=scatter_grouping,
             )
             elapsed = time.perf_counter() - started
             for dimension in range(1, mda1_train.shape[1] // width + 1):
                 feature_dim = dimension * width
+                classification_started = time.perf_counter()
+                accuracy = accuracy_for_dimension(
+                    mda1_train, y_train, mda1_test, y_test, feature_dim
+                )
+                classification_elapsed = time.perf_counter() - classification_started
                 add_row(
                     rows, train_count=train_count, repeat=repeat_index + 1, seed=seed,
                     method="MDA/2-1 (row mode)", row_dim=dimension, col_dim=width,
                     feature_count=feature_dim,
-                    accuracy=accuracy_for_dimension(mda1_train, y_train, mda1_test, y_test, feature_dim),
                     elapsed=elapsed, iterations=len(mda1_history), objective=mda1_history[-1],
+                    accuracy=accuracy, classification_elapsed=classification_elapsed,
                 )
             for iteration, objective in enumerate(mda1_history, start=1):
                 objective_rows.append({
@@ -225,37 +279,86 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
                     "iteration": iteration, "training_fisher_ratio": objective,
                 })
 
-            for row_dim in row_dimensions:
-                for col_dim in col_dimensions:
-                    started = time.perf_counter()
-                    mda_train, mda_test, history = fit_mda(
-                        x_train, y_train, x_test, components=(row_dim, col_dim),
-                        max_iter=args.max_iter, tolerance=args.tolerance,
-                        projection_normalization=args.projection_normalization,
-                        stopping_rule=args.mda_stopping,
-                        mode_order=args.mda_order,
-                    )
-                    elapsed = time.perf_counter() - started
-                    prediction = predict_nearest_neighbor(mda_train, y_train, mda_test)
-                    accuracy = float(np.mean(prediction == y_test))
-                    method = "MDA/2-2"
-                    add_row(
-                        rows, train_count=train_count, repeat=repeat_index + 1, seed=seed,
-                        method=method, row_dim=row_dim, col_dim=col_dim,
-                        feature_count=row_dim * col_dim, accuracy=accuracy, elapsed=elapsed,
-                        iterations=len(history), objective=history[-1],
-                    )
-                    for iteration, objective in enumerate(history, start=1):
-                        objective_rows.append({
-                            "train_per_class": train_count, "repeat": repeat_index + 1,
-                            "seed": seed, "method": method,
-                            "row_dim": row_dim, "col_dim": col_dim,
-                            "iteration": iteration, "training_fisher_ratio": objective,
-                        })
+            initial_projection_cache = None
+            if args.mda_order == "row_first" and args.mda_stopping == "paper_figure":
+                cache_started = time.perf_counter()
+                initial_projection_cache = precompute_mda22_first_iteration(
+                    x_train,
+                    y_train,
+                    mda22_dimensions,
+                    projection_normalization=args.projection_normalization,
+                    scatter_grouping=scatter_grouping,
+                )
+                print(
+                    f"gallery={train_count} repeat={repeat_number}/{args.repeats} "
+                    f"cached first MDA iteration in {time.perf_counter() - cache_started:.2f}s",
+                    flush=True,
+                )
+
+            def evaluate_mda22(pair: tuple[int, int]) -> tuple[dict, list[dict]]:
+                row_dim, col_dim = pair
+                started = time.perf_counter()
+                initial_projections = None
+                initial_iterations = 0
+                initial_history = None
+                if initial_projection_cache is not None:
+                    initial_row, full_initial_col = initial_projection_cache[row_dim]
+                    initial_projections = (initial_row, full_initial_col[:, :col_dim])
+                    initial_iterations = 1
+                    initial_history = [float("nan")]
+                mda_train, mda_test, history = fit_mda(
+                    x_train, y_train, x_test, components=(row_dim, col_dim),
+                    max_iter=args.max_iter, tolerance=args.tolerance,
+                    projection_normalization=args.projection_normalization,
+                    stopping_rule=args.mda_stopping,
+                    mode_order=args.mda_order,
+                    paper_epsilon=args.paper_epsilon,
+                    track_objective_history=False,
+                    scatter_grouping=scatter_grouping,
+                    initial_projections=initial_projections,
+                    initial_iterations=initial_iterations,
+                    initial_history=initial_history,
+                )
+                fit_elapsed = time.perf_counter() - started
+                classification_started = time.perf_counter()
+                prediction = predict_nearest_neighbor(mda_train, y_train, mda_test)
+                classification_elapsed = time.perf_counter() - classification_started
+                accuracy = float(np.mean(prediction == y_test))
+                method = "MDA/2-2"
+                pair_rows: list[dict] = []
+                add_row(
+                    pair_rows, train_count=train_count, repeat=repeat_index + 1, seed=seed,
+                    method=method, row_dim=row_dim, col_dim=col_dim,
+                    feature_count=row_dim * col_dim, accuracy=accuracy, elapsed=fit_elapsed,
+                    classification_elapsed=classification_elapsed,
+                    iterations=len(history), objective=history[-1],
+                )
+                pair_objectives = []
+                pair_objectives.append({
+                    "train_per_class": train_count, "repeat": repeat_index + 1,
+                    "seed": seed, "method": method,
+                    "row_dim": row_dim, "col_dim": col_dim,
+                    "iteration": len(history), "training_fisher_ratio": history[-1],
+                })
+                return pair_rows[0], pair_objectives
+
+            with threadpool_limits(limits=1):
+                with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                    for pair_number, (pair_row, pair_objectives) in enumerate(
+                        executor.map(evaluate_mda22, mda22_dimensions), start=1
+                    ):
+                        rows.append(pair_row)
+                        objective_rows.extend(pair_objectives)
+                        if pair_number % 1000 == 0:
+                            print(
+                                f"gallery={train_count} repeat={repeat_number}/{args.repeats} "
+                                f"MDA/2-2={pair_number}/{len(mda22_dimensions)} pairs",
+                                flush=True,
+                            )
 
             print(
                 f"gallery={train_count} repeat={repeat_number}/{args.repeats} "
-                f"rows={len(rows)} last_mda={accuracy:.3f}",
+                f"rows={len(rows)} MDA/2-2={len(mda22_dimensions)} pairs complete",
                 flush=True,
             )
             write_csv(checkpoint_rows_path, rows, list(rows[0]))
@@ -295,7 +398,8 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
         {"key": "dataset_archive_sha256", "value": archive_sha256},
         {"key": "dataset_shape_rows_columns", "value": "112x92"},
         {"key": "images_and_identities", "value": "400 images; 40 identities; 10 images each"},
-        {"key": "preprocessing", "value": "Per-image 8-bit histogram equalization; converted from original 8-bit PGM"},
+        {"key": "preprocessing", "value": f"Per-image 8-bit histogram equalization to {args.histogram_levels} output levels; converted from original 8-bit PGM"},
+        {"key": "histogram_output_levels", "value": str(args.histogram_levels)},
         {"key": "gallery_counts", "value": ",".join(map(str, args.train_per_class))},
         {"key": "repeats", "value": str(args.repeats)},
         {"key": "seed_rule", "value": f"{args.seed} + 1000 * gallery_count + zero_based_repeat"},
@@ -304,11 +408,19 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
         {"key": "mda_update_order", "value": args.mda_order},
         {"key": "mda_ridge_relative_to_mean_within_scatter", "value": "1e-6"},
         {"key": "mda_stopping", "value": (
-            f"paper figure: projection Frobenius change < requested output dimension after iteration 2; max {args.max_iter}"
+            f"paper Fig. 3: projection Frobenius change < output_dim * input_dim * epsilon after iteration 2; epsilon={args.paper_epsilon}; max {args.max_iter}"
             if args.mda_stopping == "paper_figure"
             else f"{args.mda_stopping}; tolerance={args.tolerance}; max {args.max_iter}"
         )},
-        {"key": "mda2_2_dimension_grid", "value": ",".join(map(str, row_dimensions)) + " x " + ",".join(map(str, col_dimensions))},
+        {"key": "mda2_2_dimension_grid", "value": ("all theorem-feasible integer dimension pairs" if args.full_mda_grid else ",".join(map(str, row_dimensions)) + " x " + ",".join(map(str, col_dimensions)) + " filtered by Theorem 2 rank bounds")},
+        {"key": "mda22_feasible_pair_count", "value": str(len(mda22_dimensions))},
+        {"key": "workers", "value": str(args.workers)},
+        {"key": "linear_algebra_threads", "value": os.environ.get("VECLIB_MAXIMUM_THREADS", "1 (threadpoolctl on non-Accelerate backends)")},
+        {"key": "mode_scatter_aggregation", "value": "class membership matrix; same class-wise scatter equations"},
+        {"key": "scatter_label_grouping", "value": "class index/counts/one-hot membership cached once per split"},
+        {"key": "first_iteration_cache", "value": checkpoint_config["first_iteration_cache"]},
+        {"key": "mda22_objective_log", "value": "final objective per dimension/split; stopping follows projection change"},
+        {"key": "timing_columns", "value": "fit_seconds and classification_seconds are timed separately; fit_and_predict_seconds is their sum"},
         {"key": "selection_warning", "value": "Best mean probe accuracy over this sweep is an optimistic, test-selected diagnostic; do not present it as an unbiased estimate."},
         {"key": "replication_scope", "value": "Original-resolution, paper-style follow-up. The article does not report split seeds or exact full feature sweep, so exact Table I recreation is not possible."},
     ]
@@ -334,10 +446,14 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, default=Path("results/2026-10-28-orl-original-dimension-sweep"))
     parser.add_argument("--train-per-class", type=parse_int_list, default=parse_int_list("2,3,4,5"))
     parser.add_argument("--mda-dimensions", type=parse_int_list, default=parse_int_list("2,4,6,8,12"))
+    parser.add_argument("--full-mda-grid", action="store_true", help="Search every feasible integer row/column dimension on the 112x92 ORL images.")
     parser.add_argument("--repeats", type=int, default=30)
     parser.add_argument("--seed", type=int, default=3314)
     parser.add_argument("--max-iter", type=int, default=10)
     parser.add_argument("--tolerance", type=float, default=1e-4)
+    parser.add_argument("--paper-epsilon", type=float, default=1e-4, help="Epsilon in Fig. 3; the article does not report its value.")
+    parser.add_argument("--histogram-levels", type=int, default=256, help="Per-image equalization output levels; 64 approximates MATLAB histeq's default.")
+    parser.add_argument("--workers", type=int, default=4, help="Number of concurrent independent MDA/2-2 fits.")
     parser.add_argument(
         "--mda-stopping",
         choices=("paper_figure", "projection_change", "objective"),
@@ -347,8 +463,10 @@ def main() -> None:
     parser.add_argument("--mda-order", choices=("row_first", "column_first"), default="row_first")
     parser.add_argument("--resume", action="store_true", help="Resume completed splits from a compatible checkpoint.")
     args = parser.parse_args()
-    if args.repeats < 1 or args.max_iter < 1:
-        parser.error("repeats and max-iter must be positive")
+    if args.repeats < 1 or args.max_iter < 1 or args.workers < 1:
+        parser.error("repeats, max-iter, and workers must be positive")
+    if not 2 <= args.histogram_levels <= 256 or args.paper_epsilon <= 0:
+        parser.error("histogram-levels must be 2..256 and paper-epsilon must be positive")
     if not args.archive.is_file():
         parser.error(f"ORL archive not found: {args.archive}; see docs/data-and-ethics.md")
     args.output_dir.mkdir(parents=True, exist_ok=True)

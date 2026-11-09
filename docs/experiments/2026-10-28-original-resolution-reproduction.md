@@ -2,10 +2,14 @@
 
 **Date:** 2026-10-28 (Hong Kong time)
 **Owner:** Person 3
-**Status:** fixed-setting runs and five-repeat dimension sweep complete; independent code audit pending
+**Status:** historical results retained; see the 2026-11-09 correction below before describing them as paper-faithful
 **Paper:** Yan et al. (2007), [Multilinear Discriminant Analysis for Face Recognition](https://mmlab.ie.cuhk.edu.hk/archive/2007/IP07_face02.pdf)
 
 ## Purpose
+
+> **Reproduction audit correction (2026-11-09):** A closer reading of Fig. 3 found that its stopping threshold is `m'_k × m_k × epsilon`, not just the requested output dimension `m'_k`. The October `paper_figure_*` runs used the latter, looser threshold because the figure was misread. The article does not state `epsilon`; the corrected follow-up records an explicit value. The October results remain valid as results of that earlier implementation, but they are not the corrected Fig. 3 run. The paper also leaves histogram-equalization settings unspecified; a 64-level MATLAB-default approximation is now available alongside the former 256-level version.
+
+Use [`2026-11-09-paper-proximate-reproduction.md`](2026-11-09-paper-proximate-reproduction.md) for the completed corrected method, full-grid results, leakage audit, and optimization profile.
 
 The earlier group study used the 64×64 scikit-learn copy of Olivetti faces. This follow-up uses the original 112-row × 92-column PGM images and the paper's stated per-image histogram equalization, then compares Eigenfaces PCA, Fisherfaces LDA, MDA/2-1, and MDA/2-2 with the same gallery/probe split and Euclidean 1-nearest-neighbour classifier.
 

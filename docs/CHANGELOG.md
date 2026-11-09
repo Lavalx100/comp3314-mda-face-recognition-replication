@@ -1,5 +1,25 @@
 # Change log
 
+## 2026-11-09 — Source-fidelity correction and full-grid follow-up
+
+- Re-read the paper's Fig. 3 and corrected the MDA stopping condition to include `m'_k × m_k × epsilon`; the paper does not specify epsilon, so the chosen value is recorded per run.
+- Added a 64-output-level histogram-equalization option aligned with MATLAB's documented default; retained 256 levels as a comparison setting because the paper does not identify the software or bin count.
+- Applied Theorem 2's rank bounds to the full integer MDA/2-2 dimension grid, reducing the 112×92 Cartesian grid to 10,130 feasible row/column pairs.
+- Reran 30 matched original-resolution fixed 6×6 comparisons with both within-scatter and unit-L2 eigenvector scaling; the corrected 30-split outputs are saved separately.
+- Completed five-repeat full feasible dimension searches for both within-scatter and unit-L2 normalization. Each output set retains per-split scores and all feasible pairs; the dated record explains probe-based selection bias.
+- Marked October `paper_figure_*` outputs as historical because their stopping threshold omitted the dimension × epsilon factor.
+
+## 2026-11-09 — Correctness, leakage, and performance audit
+
+- Audited preprocessing, scatter equations, alternating eigenproblems, projection scaling, Euclidean 1-NN, gallery/probe selection, Theorem 2 rank bounds, and Fig. 3 stopping against the source paper. Marked undocumented run choices separately from paper instructions.
+- Verified that fitting is gallery-only and image preprocessing uses no cross-image statistics. Flagged best-grid dimension selection on probe scores as test-set leakage and retained the selected maxima as optimistic diagnostics.
+- Investigated the gallery-size-3 dip. It occurs only in the within-scatter full grid; unit-L2 full-grid results and a 30-repeat nested fixed-6×6 diagnostic both improve from two to three gallery images.
+- Added cached class grouping and first-iteration MDA reuse across the full dimension grid. The actual ORL numerical comparison matched distances, objectives, predictions, and iteration counts within recorded float64 tolerances.
+- Profiled preprocessing, scatter construction, eigendecomposition, projection/iteration work, and classification. Benchmarked worker and BLAS settings; representative optimized throughput reached 40.79 fits/s at 16 workers and 1 BLAS thread.
+- Tested and rejected alternative scatter aggregation and SciPy generalized eigensolver paths because they did not improve end-to-end performance or had a convergence mismatch.
+- Added the optional HKU HPC2021 AMD SLURM script and account/setup notes. No account was assumed and no remote run was launched.
+- Added numerical-equivalence and nested-gallery outputs; the automated suite passes 13/13 tests.
+
 ## 2026-10-31 — Visualization layout fix
 
 - Reserved separate vertical space for the x-axis title and two-row legend in every saved accuracy chart; regenerated all 13 result charts and the historical chart asset from their existing CSV summaries.

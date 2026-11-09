@@ -1,0 +1,74 @@
+{
+  "gallery_size": 5,
+  "split_seed": 8314,
+  "pairs": [
+    [
+      2,
+      2
+    ],
+    [
+      2,
+      8
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      8,
+      8
+    ],
+    [
+      16,
+      12
+    ],
+    [
+      24,
+      16
+    ],
+    [
+      32,
+      24
+    ],
+    [
+      48,
+      24
+    ],
+    [
+      56,
+      46
+    ],
+    [
+      64,
+      46
+    ],
+    [
+      92,
+      46
+    ],
+    [
+      112,
+      92
+    ]
+  ],
+  "normalizations": {
+    "unit_l2": {
+      "max_aligned_row_projection_relative_frobenius_difference": 7.038465762823261e-09,
+      "max_aligned_column_projection_relative_frobenius_difference": 1.2091652756111056e-08,
+      "max_squared_distance_absolute_difference": 1.2056887044309406e-08,
+      "max_squared_distance_relative_frobenius_difference": 5.5204477726023616e-11,
+      "max_objective_absolute_difference": 6.899059101783678e-11,
+      "prediction_mismatches": 0,
+      "iteration_count_mismatches": 0
+    },
+    "within_scatter": {
+      "max_aligned_row_projection_relative_frobenius_difference": 2.4525428627576605e-10,
+      "max_aligned_column_projection_relative_frobenius_difference": 2.0769541258732773e-10,
+      "max_squared_distance_absolute_difference": 1.6944889935643914e-11,
+      "max_squared_distance_relative_frobenius_difference": 4.581627395321632e-12,
+      "max_objective_absolute_difference": 2.3021584638627246e-12,
+      "prediction_mismatches": 0,
+      "iteration_count_mismatches": 0
+    }
+  }
+}

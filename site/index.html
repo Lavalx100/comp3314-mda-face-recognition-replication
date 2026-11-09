@@ -176,7 +176,7 @@
         <div>
           <div class="eyebrow">Fall 2026 · Original-resolution study</div>
           <h1 id="hero-title">Can keeping image structure help recognize faces?</h1>
-          <p>Group 27 studies Multilinear Discriminant Analysis (MDA), a method that learns from an image as a matrix instead of flattening every pixel into one long list. We ran the original 112×92 ORL images, compared four methods on matched splits, and swept MDA's row and column dimensions.</p>
+          <p>Group 27 studies Multilinear Discriminant Analysis (MDA), a method that learns from an image as a matrix instead of flattening every pixel into one long list. We ran the original 112×92 ORL images, compared four methods on matched splits, and audited a full row-and-column dimension search.</p>
           <div class="hero-actions">
             <a class="button" href="#results">See the reproduction results <span aria-hidden="true">↘</span></a>
             <a class="button secondary" href="#resources">Open project evidence ↗</a>
@@ -200,7 +200,7 @@
         <div class="stat"><strong>112×92</strong><span>original ORL image pixels</span></div>
         <div class="stat"><strong>400</strong><span>images · 40 identities</span></div>
         <div class="stat"><strong>30</strong><span>matched splits per gallery size</span></div>
-        <div class="stat"><strong>156</strong><span>MDA/2-2 dimension pairs swept</span></div>
+        <div class="stat"><strong>10,130</strong><span>feasible MDA/2-2 dimension pairs per grid</span></div>
       </div>
 
       <section class="section" id="paper">
@@ -236,7 +236,7 @@
         </div>
         <div class="method-note">
           <div class="note"><h3>Why MDA/2-1 and MDA/2-2?</h3><p>MDA/2-1 learns one image mode and leaves the other unchanged. MDA/2-2 learns both row and column projections, then compares the resulting compact features.</p></div>
-          <div class="note warn"><h3>Why test feature scaling?</h3><p>Euclidean nearest-neighbour distance changes when feature axes are rescaled. With two gallery images, changing the matched MDA/2-2 run from unit-L2 to within-scatter axes changes accuracy from 42.7% to 5.3%. The paper does not specify this scaling convention fully.</p></div>
+          <div class="note warn"><h3>Why test feature scaling?</h3><p>Euclidean nearest-neighbour distance changes when feature axes are rescaled. In the fixed 6×6 study, the two-gallery-image accuracy changes from 34.8% with unit-L2 axes to 5.4% with within-scatter axes. The paper does not specify this scaling convention fully.</p></div>
         </div>
       </section>
     </div>
@@ -244,13 +244,13 @@
     <section class="section data-section" id="results">
       <div class="wrap">
         <div class="section-head">
-          <div><div class="eyebrow">03 / Group results</div><h2>More gallery images help. The winner depends on the setting.</h2></div>
-          <p>These are mean probe accuracies and sample standard deviations over 30 deterministic splits. Every method sees the same split; learned projections use gallery images only. The dimension sweep uses five splits and keeps all settings.</p>
+          <div><div class="eyebrow">03 / Group results</div><h2>Gallery size helps. The scaling choice matters.</h2></div>
+          <p>The fixed-setting chart reports mean probe accuracy and sample SD over 30 matched splits. The full dimension grids use five splits and retain all 10,130 feasible settings. Their best dimensions are selected using those same probe scores, so the maxima are optimistic.</p>
         </div>
         <div class="results-grid">
           <figure class="chart-frame">
-            <img src="../results/2026-10-28-original-resolution-30-repeat/paper_figure_unit_l2/accuracy_vs_training_size.svg" alt="Line chart comparing mean face identification accuracy by training images per person for PCA, Fisherfaces, MDA two-one, and MDA two-two on original 112 by 92 ORL faces over 30 matched splits">
-            <figcaption>Original-resolution ORL · unit-L2 axes · paper Fig. 3 stopping rule · fixed feature dimensions.</figcaption>
+            <img src="../results/2026-11-09-paper-proximate-fixed/unit_l2/accuracy_vs_training_size.svg" alt="Line chart comparing mean face identification accuracy by training images per person for PCA, Fisherfaces, MDA two-one, and MDA two-two on original 112 by 92 ORL faces over 30 matched splits">
+            <figcaption>Original-resolution ORL · corrected Fig. 3 stopping rule · fixed feature dimensions.</figcaption>
           </figure>
           <div>
             <div class="table-scroll">
@@ -258,23 +258,27 @@
                 <caption>Mean accuracy ± sample SD · percent</caption>
                 <thead><tr><th scope="col">Images</th><th scope="col">PCA</th><th scope="col">Fisher</th><th scope="col">MDA/2-1</th><th scope="col">MDA/2-2</th></tr></thead>
                 <tbody>
-                  <tr><td>2</td><td>73.8 ± 2.5</td><td>73.1 ± 2.9</td><td class="best">81.4 ± 2.9</td><td>42.7 ± 5.5</td></tr>
-                  <tr><td>3</td><td>84.0 ± 1.8</td><td>84.9 ± 2.8</td><td class="best">89.9 ± 2.2</td><td>72.0 ± 3.9</td></tr>
-                  <tr><td>4</td><td>88.2 ± 3.1</td><td>88.2 ± 2.4</td><td class="best">92.1 ± 2.1</td><td>85.4 ± 2.2</td></tr>
-                  <tr><td>5</td><td>91.6 ± 2.0</td><td>90.4 ± 2.2</td><td class="best">94.6 ± 1.6</td><td>91.4 ± 2.3</td></tr>
+                  <tr><td>2</td><td>73.9 ± 2.5</td><td>73.1 ± 2.8</td><td class="best">81.4 ± 3.0</td><td>34.8 ± 5.3</td></tr>
+                  <tr><td>3</td><td>84.1 ± 1.8</td><td>84.9 ± 2.9</td><td class="best">89.9 ± 2.2</td><td>52.6 ± 5.6</td></tr>
+                  <tr><td>4</td><td>88.2 ± 3.0</td><td>88.0 ± 2.4</td><td class="best">92.0 ± 2.2</td><td>75.8 ± 3.6</td></tr>
+                  <tr><td>5</td><td>91.6 ± 2.0</td><td>90.4 ± 2.2</td><td class="best">94.7 ± 1.7</td><td>87.5 ± 2.8</td></tr>
                 </tbody>
               </table>
             </div>
-            <p class="result-foot">Bold marks the highest mean in each row. Fixed settings: PCA 36, Fisherfaces up to 36, MDA/2-1 row dimension 6, MDA/2-2 6×6.</p>
+            <p class="result-foot">Bold marks the highest mean in each row. Fixed settings: PCA 36, Fisherfaces up to 36, MDA/2-1 row dimension 6, MDA/2-2 6×6. Unit-L2 axes.</p>
           </div>
         </div>
         <figure class="chart-frame" style="margin-top:28px">
-          <img src="../results/2026-10-28-original-resolution-dimension-sweep/paper_figure_unit_l2/mda22_dimension_heatmap.svg" alt="Four heatmaps showing MDA two-two mean accuracy across row and column projection dimensions for gallery sizes two to five">
-          <figcaption>Each cell is the mean of five splits. The two-image gallery's best grid point is the full 112×92 feature space, but its mean is 62.9%. <a href="../results/2026-10-28-original-resolution-dimension-sweep/paper_figure_unit_l2/dimension_summary.csv">Download all dimension means ↗</a></figcaption>
+          <img src="../results/2026-11-09-paper-proximate-full-grid-unit-l2/mda22_dimension_heatmap.svg" alt="Four heatmaps showing MDA two-two mean accuracy across all feasible row and column projection dimensions for gallery sizes two to five under unit-L2 scaling">
+          <figcaption>Each cell is the mean of five probe splits across all feasible pairs. The unit-L2 best means are 61.8%, 82.3%, 90.8%, and 94.9%. <a href="../results/2026-11-09-paper-proximate-full-grid-unit-l2/dimension_summary.csv">Download all dimension means ↗</a></figcaption>
         </figure>
         <div class="takeaway">
           <div class="label">Careful takeaway</div>
-          <p>Our fixed 6×6 MDA/2-2 result is far below the paper's best score with two and three gallery images. A five-split sweep over 156 dimension pairs improves it, but the best MDA/2-2 mean still reaches only 62.9% at two images, versus the paper's 90.1%. Those sweep maxima use the probe scores to select dimensions, so they are optimistic diagnostics. Matched within-scatter scaling also lowers MDA/2-2 from 42.7% to 5.3% at two images. The paper does not publish its full search range or split seeds; this is a reproducibility gap for the team to audit, not proof the paper is wrong.</p>
+          <p>The full unit-L2 grid rises from 61.8% with two gallery images to 82.3% with three. The within-scatter grid instead dips from 62.4% to 57.3%. A separate 30-repeat nested split at fixed 6×6 improves from two to three gallery images under both scalings. This points to a scale, dimension-selection, and split interaction in the probe-selected within-scatter grid, not a general penalty for adding an image. All grid maxima use probe scores to select dimensions and are optimistic. The paper does not give its exact dimension search, split seeds, or axis scaling.</p>
+        </div>
+        <div class="method-note">
+          <div class="note"><h3>Where the time goes</h3><p>In a 12-fit profile, scatter construction used 44% of fit time, eigendecomposition 18%, and projection/iteration work 38%. Classification used less than 1%.</p></div>
+          <div class="note"><h3>What caching changed</h3><p>Reusing the first MDA updates reached 40.79 fits/s at 16 workers and one BLAS thread, versus 24.17 fits/s in the completed full run. That projects about 1 h 23 min for the full grid; the exhaustive results were preserved and not rerun.</p></div>
         </div>
       </div>
     </section>
@@ -290,7 +294,7 @@
             <thead><tr><th>Study detail</th><th>Yan et al. (2007)</th><th>Group 27</th></tr></thead>
             <tbody>
               <tr><td>Images</td><td>Original ORL images at 92 × 112 pixels</td><td>Original 92 × 112 pixel PGM files; historical 64 × 64 results kept separately</td></tr>
-              <tr><td>Feature settings</td><td>Best results among tested dimensions; Fisherface/O is dimension-selected</td><td>30-split table uses fixed dimensions; five-split grid searches 156 MDA/2-2 row/column pairs</td></tr>
+              <tr><td>Feature settings</td><td>Best results among tested dimensions; Fisherface/O is dimension-selected</td><td>30-split table uses fixed dimensions; five-split grids search all 10,130 Theorem 2-feasible MDA/2-2 pairs under two axis scalings</td></tr>
               <tr><td>Evaluation</td><td>Random gallery/probe partitions; exact seeds and full search details are not reported</td><td>30 new matched splits per gallery size; every group score and seed is saved</td></tr>
               <tr><td>Classifier</td><td>Nearest neighbour</td><td>Euclidean 1-nearest-neighbour</td></tr>
             </tbody>
@@ -302,7 +306,7 @@
       <section class="section" id="plan">
         <div class="section-head">
           <div><div class="eyebrow">05 / Your assignment</div><h2>Person 3: own the experiment trail.</h2></div>
-          <p>Your job is to make the results runnable, fair, and transparent. The original-resolution fixed runs and dimension sweep are done; focus now on the independent audit, handoff, and final explanation.</p>
+          <p>Your job is to make the results runnable, fair, and transparent. The fixed runs and both full dimension grids are done; the paper audit, leakage check, and efficiency benchmarks are recorded. Focus now on team review and final report integration.</p>
         </div>
         <div class="tasks">
           <article class="task-panel primary">
@@ -313,7 +317,9 @@
               <li><span class="check" aria-hidden="true">✓</span><span>Save every split score, summary, chart, configuration, and MDA objective trace.</span></li>
               <li><span class="check" aria-hidden="true">✓</span><span>Record paired differences and explain their conditional bootstrap ranges.</span></li>
               <li><span class="check" aria-hidden="true">✓</span><span>Load the original 112×92 ORL archive without committing face images.</span></li>
-              <li><span class="check" aria-hidden="true">✓</span><span>Run the paper's Fig. 3 stopping rule on 30 matched splits and sweep 156 MDA/2-2 dimension pairs.</span></li>
+              <li><span class="check" aria-hidden="true">✓</span><span>Run the corrected Fig. 3 stopping rule and complete both five-repeat grids of 10,130 feasible dimension pairs.</span></li>
+              <li><span class="check" aria-hidden="true">✓</span><span>Audit probe-set dimension selection and test a fixed-size nested gallery comparison.</span></li>
+              <li><span class="check" aria-hidden="true">✓</span><span>Profile fit stages, cache repeated first-iteration work, and validate the optimized fits against direct ones.</span></li>
               <li><span class="check" aria-hidden="true">✓</span><span>Keep the five-split 64×64 exploratory outputs intact as historical evidence.</span></li>
             </ul>
           </article>
@@ -346,20 +352,20 @@
       <section class="section" id="run" style="padding-top:10px">
         <div class="section-head">
           <div><div class="eyebrow">07 / Reproduce our run</div><h2>One project folder, traceable outputs.</h2></div>
-          <p>Set up Python from the repository README. The dataset is fetched into a local cache; face images are not committed. Use a new output path for new runs.</p>
+          <p>Set up Python from the repository README. The dataset archive is local and excluded from Git. Existing full grids are complete; use a new output path only if you choose another run.</p>
         </div>
         <div class="commands"><pre><span class="comment"># Original 112×92 ORL study (download att_faces.zip; see data guide)</span>
 python3 src/run_experiment.py --dataset orl-original --repeats 30 \
   --max-iter 10 --fisher-pca-max 10400 --mda-stopping-rule paper_figure \
   --output-dir results/rerun/orl-original/unit_l2
 
-<span class="comment"># Reproduce all row×column dimensions and create the heatmap</span>
-python3 scripts/run_orl_dimension_sweep.py --mda-stopping paper_figure \
-  --mda-dimensions 1,2,4,8,12,16,24,32,48,60,80,92,112 --repeats 5 \
+<span class="comment"># Reproduce the full feasible row×column dimension grid</span>
+python3 scripts/run_orl_dimension_sweep.py --full-mda-grid \
+  --histogram-levels 64 --projection-normalization unit_l2 \
+  --mda-stopping paper_figure --mda-order row_first --max-iter 10 \
+  --workers 14 --repeats 5 --seed 3314 \
   --output-dir results/rerun/orl-original/dimension-sweep
-python3 scripts/render_mda_dimension_heatmap.py \
-  results/rerun/orl-original/dimension-sweep/dimension_summary.csv \
-  results/rerun/orl-original/dimension-sweep/mda22_dimension_heatmap.svg</pre></div>
+</pre></div>
       </section>
 
       <section class="section" id="resources">
@@ -372,7 +378,11 @@ python3 scripts/render_mda_dimension_heatmap.py \
           <a class="resource" href="../docs/team-plan.md"><span>Your role</span><strong>Person 3 work plan ↗</strong></a>
           <a class="resource" href="../docs/experiments/2026-10-28-30-repeat-followup.md"><span>Experiment record</span><strong>30-split follow-up ↗</strong></a>
           <a class="resource" href="../docs/experiments/2026-10-28-original-resolution-reproduction.md"><span>Original-resolution study</span><strong>Full run and results ↗</strong></a>
-          <a class="resource" href="../results/2026-10-28-original-resolution-dimension-sweep/paper_figure_unit_l2/mda22_dimension_heatmap.svg"><span>Dimension sensitivity</span><strong>MDA/2-2 heatmap ↗</strong></a>
+          <a class="resource" href="../docs/experiments/2026-11-09-paper-proximate-reproduction.md"><span>Latest research record</span><strong>Correctness and performance audit ↗</strong></a>
+          <a class="resource" href="../results/2026-11-09-paper-proximate-full-grid-unit-l2/mda22_dimension_heatmap.svg"><span>Dimension sensitivity</span><strong>Full-grid MDA/2-2 heatmap ↗</strong></a>
+          <a class="resource" href="../results/2026-11-09-nested-gallery-diagnostic/summary.csv"><span>Gallery-size check</span><strong>Nested 2-vs-3 split results ↗</strong></a>
+          <a class="resource" href="../results/2026-11-09-performance-repeatability/worker_scaling.csv"><span>Performance evidence</span><strong>Worker and BLAS benchmark ↗</strong></a>
+          <a class="resource" href="../hpc/README.md"><span>Optional computing</span><strong>HKU HPC setup ↗</strong></a>
           <a class="resource" href="../src/run_experiment.py"><span>Implementation</span><strong>Run the four methods ↗</strong></a>
           <a class="resource" href="../docs/protocol.md"><span>Reproducibility</span><strong>Data and evaluation protocol ↗</strong></a>
           <a class="resource" href="../report/main.tex"><span>Course deliverable</span><strong>Editable report source ↗</strong></a>

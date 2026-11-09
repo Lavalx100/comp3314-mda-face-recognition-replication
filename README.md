@@ -2,7 +2,7 @@
 
 This is the working research repository for COMP3314 Group 27's study of Yan et al., “Multilinear Discriminant Analysis for Face Recognition” (IEEE TIP, 2007). It records the research question, implementation, protocols, run artifacts, limitations, progress, and handoff materials.
 
-**Current status:** the original-resolution fixed-setting study (30 matched splits), matched normalization sensitivity run, and five-repeat dimension sweep are complete. The independent implementation audit and final report integration remain. We cannot recreate the exact original Table I run because the paper omits split seeds, repeat count, and complete feature-dimension selection details. See [progress](docs/PROGRESS.md) and the [original-resolution experiment record](docs/experiments/2026-10-28-original-resolution-reproduction.md).
+**Current status (2026-11-09):** the corrected fixed-setting runs and both full 10,130-pair original-resolution grids are complete. The MDA pipeline has been audited for paper fidelity and probe-set leakage, then profiled and optimized with representative numerical-equivalence checks. The optimized implementation was not used to overwrite or rerun the exhaustive grids. See the [full correctness and performance audit](docs/experiments/2026-11-09-paper-proximate-reproduction.md), [progress](docs/PROGRESS.md), and [optional HKU HPC setup](hpc/README.md).
 
 **GitHub:** [private working repository](https://github.com/Lavalx100/comp3314-mda-face-recognition-replication) · Review attribution and course policy as a group before making it public.
 
@@ -46,27 +46,28 @@ Run the original-resolution paper-style follow-up with the paper's Fig. 3 stoppi
 
 ```bash
 python3 src/run_experiment.py --dataset orl-original --repeats 30 \
-  --max-iter 10 --fisher-pca-max 10400 --mda-stopping-rule paper_figure \
-  --output-dir results/rerun/orl-original/unit_l2
-python3 src/run_experiment.py --dataset orl-original --projection-normalization within_scatter \
-  --repeats 30 --max-iter 10 --fisher-pca-max 10400 \
+  --histogram-levels 64 --projection-normalization within_scatter \
+  --paper-epsilon 1e-4 --max-iter 10 --fisher-pca-max 10400 \
   --mda-stopping-rule paper_figure \
   --output-dir results/rerun/orl-original/within_scatter
+python3 src/run_experiment.py --dataset orl-original --histogram-levels 64 \
+  --projection-normalization unit_l2 --paper-epsilon 1e-4 --repeats 30 \
+  --max-iter 10 --fisher-pca-max 10400 --mda-stopping-rule paper_figure \
+  --output-dir results/rerun/orl-original/unit_l2
 python3 scripts/analyze_paired_results.py results/rerun/orl-original/unit_l2/raw_results.csv
 ```
 
-The completed original-resolution MDA/2-2 feature sweep can be rerun with:
+The closest feasible integer-dimension grid can be rerun with the optimized implementation:
 
 ```bash
-python3 scripts/run_orl_dimension_sweep.py --mda-stopping paper_figure \
-  --mda-dimensions 1,2,4,8,12,16,24,32,48,60,80,92,112 --repeats 5 \
-  --output-dir results/rerun/orl-original/dimension-sweep
-python3 scripts/render_mda_dimension_heatmap.py \
-  results/rerun/orl-original/dimension-sweep/dimension_summary.csv \
-  results/rerun/orl-original/dimension-sweep/mda22_dimension_heatmap.svg
+python3 scripts/run_orl_dimension_sweep.py --full-mda-grid \
+  --histogram-levels 64 --projection-normalization unit_l2 \
+  --paper-epsilon 1e-4 --mda-stopping paper_figure --mda-order row_first \
+  --max-iter 10 --workers 14 --repeats 5 --seed 3314 \
+  --output-dir results/rerun/orl-original/full-dimension-grid
 ```
 
-The sweep writes a checkpoint after every completed split. If interrupted, rerun the same command with `--resume` to continue using those rows; changing the dataset hash or sweep settings will reject the checkpoint.
+The sweep writes a checkpoint after every completed split and reuses the first MDA iteration across feasible dimension pairs. On the M3 Max benchmark, 14 workers was within 3% of the fastest tested setting. If interrupted, rerun the same command with `--resume`; changing the dataset hash or sweep settings will reject the checkpoint. Existing full-grid results are complete, so there is no need to rerun them just to use this optimization.
 
 Quick smoke run (not for reported results):
 
@@ -82,6 +83,8 @@ src/run_experiment.py      PCA, Fisherfaces, MDA/2-1, MDA/2-2, and run outputs
 src/orl_data.py            Reader for the original Cambridge PGM archive
 scripts/analyze_paired_results.py  Paired split differences and bootstrap ranges
 scripts/run_orl_dimension_sweep.py  Original-resolution feature-dimension sweep
+scripts/benchmark_mda_efficiency.py  Representative stage and worker-count benchmark
+scripts/run_nested_gallery_diagnostic.py  Fixed-6×6 nested 2-vs-3 gallery diagnostic
 scripts/render_mda_dimension_heatmap.py  SVG visualization of the MDA/2-2 grid
 tests/                     Deterministic unit tests for core functions
 results/                   Dated baseline, follow-up, and smoke artifacts kept separate
@@ -94,11 +97,42 @@ docs/CHANGELOG.md          Human-readable project change history
 report/main.tex            Preliminary report source based on the earlier 64×64 study; update before submission
 slides/                    Nine-minute presentation outline and Q&A prep
 site/index.html            Local research overview, plan, results, and team roles
+hpc/                       Optional HKU HPC2021 CPU SLURM setup (not submitted)
 ```
 
 The report source is preliminary and describes the earlier 64×64 study. It needs updating with the original-resolution results before submission; the old compiled PDF is not included so it cannot be mistaken for the final report.
 
-## Original-resolution fixed-setting results
+## Corrected paper-proximate fixed-setting results
+
+Mean accuracy ± sample SD over 30 matched splits, percent. This corrected fixed-dimension run uses the 64-level preprocessing variant and Fig. 3's dimension-scaled stopping rule. The paper's table gives best-over-dimension scores, so these fixed 6×6 numbers are a method check, not the final Table I comparison.
+
+| Gallery images/person | PCA | Fisherfaces, unit-L2 | MDA/2-1, unit-L2 | MDA/2-2, unit-L2 | MDA/2-2, within-scatter | Paper MDA/2-2 best |
+|---:|---:|---:|---:|---:|---:|---:|
+| 2 | 73.9 ± 2.5 | 73.1 ± 2.8 | 81.4 ± 3.0 | 34.8 ± 5.3 | 5.4 ± 1.9 | 90.1 |
+| 3 | 84.1 ± 1.8 | 84.9 ± 2.9 | 89.9 ± 2.2 | 52.6 ± 5.6 | 23.9 ± 10.3 | 95.0 |
+| 4 | 88.2 ± 3.0 | 88.0 ± 2.4 | 92.0 ± 2.2 | 75.8 ± 3.6 | 64.0 ± 6.0 | 98.3 |
+| 5 | 91.6 ± 2.0 | 90.4 ± 2.2 | 94.7 ± 1.7 | 87.5 ± 2.8 | 81.4 ± 3.8 | 99.0 |
+
+The large scaling gap is still unresolved, so both conventions remain visible. The [corrected experiment record](docs/experiments/2026-11-09-paper-proximate-reproduction.md) lists assumptions, commands, and artifacts.
+
+## Corrected full feasible dimension search
+
+The full 112×92 grid has 10,130 dimension pairs after applying Theorem 2's rank bounds. Each normalization was evaluated on five splits for every gallery size. Best-by-grid dimensions use probe scores from the same splits, so treat the values as optimistic diagnostics.
+
+| Gallery images/person | Within-scatter best mean | Unit-L2 best mean | Unit-L2 selected dimensions |
+|---:|---:|---:|---:|
+| 2 | 62.44% | 61.81% | 112×86 |
+| 3 | 57.29% | 82.29% | 64×46 |
+| 4 | 77.92% | 90.75% | 40×26 |
+| 5 | 88.60% | 94.90% | 30×22 |
+
+The gallery-size-3 dip appears in the within-scatter grid only. A fixed-dimension 30-repeat nested split shows accuracy increasing from two to three gallery images for both normalizations. The audit discusses why the selected-grid dip is an interaction of axis scaling, dimension selection and split variation, not a general penalty for adding an image.
+
+## Historical October original-resolution results (superseded)
+
+The following earlier fixed-setting and coarse dimension-sweep results were produced before the stopping-rule audit. The October implementation compared projection change only to `m'_k`; Fig. 3 includes `m'_k × m_k × epsilon`. Keep these results as history and don't describe them as the corrected paper-style run.
+
+Historical mean accuracy ± sample SD across 30 matched splits, percent:
 
 Mean accuracy ± sample SD across 30 matched splits, percent. These settings are fixed (PCA 36, Fisherfaces up to 36, MDA/2-1 with 6 row features, and MDA/2-2 with 6×6 features); they do not reproduce the paper's best-over-dimension selection.
 
@@ -113,7 +147,7 @@ Mean accuracy ± sample SD across 30 matched splits, percent. These settings are
 
 The main mismatch is fixed 6×6 MDA/2-2 at two and three gallery images. The paper reports a best-over-dimension MDA/2-2 score of 90.1% with two gallery images; our fixed 6×6 mean is 42.7%. The completed dimension sweep tests how much feature size changes the result, but its best grid values are probe-selected and optimistic.
 
-## Dimension-sweep findings
+## Historical coarse dimension sweep
 
 The five-repeat sweep retained all 156 feasible MDA/2-2 row/column pairs, along with PCA, Fisherfaces, and MDA/2-1 feature curves. The best cell for each method/gallery size was selected using the same probe splits, so these values are diagnostic and optimistic; they are not unbiased test estimates.
 
