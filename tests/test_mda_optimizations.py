@@ -1,6 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 
@@ -56,6 +57,29 @@ class MDAOptimizationTests(unittest.TestCase):
                     actual_within, expected_within, rtol=1e-12, atol=1e-12
                 )
 
+    def test_first_iteration_cache_keeps_direct_identity_contraction(self):
+        rng = np.random.default_rng(441)
+        train_images = rng.normal(size=(12, 7, 5))
+        labels = np.repeat(np.array([0, 1, 2]), 4)
+        identity_col = np.eye(train_images.shape[2], dtype=np.float64)
+        expected = np.einsum(
+            "nhw,wb->nhb", train_images, identity_col, optimize=True
+        )
+        original_mode_scatter = experiment.mode_scatter
+
+        with patch.object(
+            experiment, "mode_scatter", wraps=original_mode_scatter
+        ) as scatter_spy:
+            experiment.precompute_mda22_first_iteration(
+                train_images,
+                labels,
+                [(2, 2), (3, 1)],
+                projection_normalization="unit_l2",
+            )
+
+        first_row_input = scatter_spy.call_args_list[0].args[0]
+        np.testing.assert_array_equal(first_row_input, expected)
+
     def test_reused_first_iteration_preserves_learned_projections(self):
         rng = np.random.default_rng(45)
         train_images = rng.normal(size=(15, 6, 5))
@@ -87,7 +111,12 @@ class MDAOptimizationTests(unittest.TestCase):
                         track_objective_history=False,
                         scatter_grouping=grouping,
                     )
-                    initial_row, full_initial_col = cache[row_dim]
+                    initial_row, col_eigensystem = cache[row_dim]
+                    initial_col = experiment.project_generalized_eigensystem(
+                        col_eigensystem,
+                        col_dim,
+                        projection_normalization=normalization,
+                    )
                     reused = experiment.fit_mda_projections(
                         train_images,
                         labels,
@@ -100,7 +129,7 @@ class MDAOptimizationTests(unittest.TestCase):
                         paper_epsilon=1e-4,
                         track_objective_history=False,
                         scatter_grouping=grouping,
-                        initial_projections=(initial_row, full_initial_col[:, :col_dim]),
+                        initial_projections=(initial_row, initial_col),
                         initial_iterations=1,
                         initial_history=[float("nan")],
                     )

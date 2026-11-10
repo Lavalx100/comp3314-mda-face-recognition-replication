@@ -1,0 +1,59 @@
+WARN `--no-project` was provided, but no project was found
+gallery=2 repeat=1/5 cached first MDA iteration in 0.42s
+gallery=2 repeat=1/5 MDA/2-2=1000/10130 pairs
+gallery=2 repeat=1/5 MDA/2-2=2000/10130 pairs
+gallery=2 repeat=1/5 MDA/2-2=3000/10130 pairs
+gallery=2 repeat=1/5 MDA/2-2=4000/10130 pairs
+gallery=2 repeat=1/5 MDA/2-2=5000/10130 pairs
+gallery=2 repeat=1/5 MDA/2-2=6000/10130 pairs
+gallery=2 repeat=1/5 MDA/2-2=7000/10130 pairs
+gallery=2 repeat=1/5 MDA/2-2=8000/10130 pairs
+gallery=2 repeat=1/5 MDA/2-2=9000/10130 pairs
+gallery=2 repeat=1/5 MDA/2-2=10000/10130 pairs
+gallery=2 repeat=1/5 rows=10360 MDA/2-2=10130 pairs complete
+gallery=2 repeat=2/5 cached first MDA iteration in 0.43s
+gallery=2 repeat=2/5 MDA/2-2=1000/10130 pairs
+gallery=2 repeat=2/5 MDA/2-2=2000/10130 pairs
+gallery=2 repeat=2/5 MDA/2-2=3000/10130 pairs
+gallery=2 repeat=2/5 MDA/2-2=4000/10130 pairs
+gallery=2 repeat=2/5 MDA/2-2=5000/10130 pairs
+gallery=2 repeat=2/5 MDA/2-2=6000/10130 pairs
+gallery=2 repeat=2/5 MDA/2-2=7000/10130 pairs
+gallery=2 repeat=2/5 MDA/2-2=8000/10130 pairs
+gallery=2 repeat=2/5 MDA/2-2=9000/10130 pairs
+gallery=2 repeat=2/5 MDA/2-2=10000/10130 pairs
+gallery=2 repeat=2/5 rows=20720 MDA/2-2=10130 pairs complete
+gallery=2 repeat=3/5 cached first MDA iteration in 0.43s
+gallery=2 repeat=3/5 MDA/2-2=1000/10130 pairs
+gallery=2 repeat=3/5 MDA/2-2=2000/10130 pairs
+gallery=2 repeat=3/5 MDA/2-2=3000/10130 pairs
+gallery=2 repeat=3/5 MDA/2-2=4000/10130 pairs
+gallery=2 repeat=3/5 MDA/2-2=5000/10130 pairs
+gallery=2 repeat=3/5 MDA/2-2=6000/10130 pairs
+gallery=2 repeat=3/5 MDA/2-2=7000/10130 pairs
+gallery=2 repeat=3/5 MDA/2-2=8000/10130 pairs
+gallery=2 repeat=3/5 MDA/2-2=9000/10130 pairs
+gallery=2 repeat=3/5 MDA/2-2=10000/10130 pairs
+gallery=2 repeat=3/5 rows=31080 MDA/2-2=10130 pairs complete
+gallery=2 repeat=4/5 cached first MDA iteration in 0.41s
+gallery=2 repeat=4/5 MDA/2-2=1000/10130 pairs
+Traceback (most recent call last):
+  File "/Users/jad/Desktop/COMP3314/COMP3314_MDA_Replication/scripts/run_orl_dimension_sweep.py", line 497, in <module>
+    main()
+  File "/Users/jad/Desktop/COMP3314/COMP3314_MDA_Replication/scripts/run_orl_dimension_sweep.py", line 473, in main
+    rows, summary, best, objectives, metadata = run(args)
+                                                ^^^^^^^^^
+  File "/Users/jad/Desktop/COMP3314/COMP3314_MDA_Replication/scripts/run_orl_dimension_sweep.py", line 347, in run
+    for pair_number, (pair_row, pair_objectives) in enumerate(
+                                                    ^^^^^^^^^^
+  File "/Users/jad/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jad/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/jad/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/_base.py", line 451, in result
+    self._condition.wait(timeout)
+  File "/Users/jad/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/threading.py", line 355, in wait
+    waiter.acquire()
+KeyboardInterrupt

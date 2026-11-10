@@ -2,7 +2,7 @@
 
 **Run date:** 2026-11-09 (Hong Kong time)
 
-**Status:** both 10,130-pair full grids are complete; optimized implementation benchmarked and numerically checked on representative real ORL fits. The exhaustive grid was not rerun after optimization.
+**Status:** both 10,130-pair full grids are complete and remain canonical. The optimized eigensystem-reuse implementation is now the default for future dimension sweeps. A redundant optimized rerun was stopped after three complete splits; its checkpoint is preserved separately. See the [2026-11-10 optimization validation](2026-11-10-optimized-default-and-equivalence.md) for the cache correction and targeted comparisons.
 
 **Paper:** Yan et al. (2007), [Multilinear Discriminant Analysis for Face Recognition](https://mmlab.ie.cuhk.edu.hk/archive/2007/IP07_face02.pdf)
 
@@ -14,7 +14,7 @@ The full MDA/2-2 grid uses all integer output dimensions allowed by Theorem 2:
 
 `row_dim <= 39 * col_dim` and `col_dim <= 39 * row_dim`.
 
-There are 10,130 feasible pairs. Five gallery/probe splits were evaluated at each gallery size 2–5, for 202,600 MDA/2-2 fits per normalization. The original-resolution within-scatter and unit-L2 outputs remain separate under [`results/2026-11-09-paper-proximate-full-grid/`](../../results/2026-11-09-paper-proximate-full-grid/) and [`results/2026-11-09-paper-proximate-full-grid-unit-l2/`](../../results/2026-11-09-paper-proximate-full-grid-unit-l2/). The optimized code has not overwritten or regenerated either result set.
+There are 10,130 feasible pairs. Five gallery/probe splits were evaluated at each gallery size 2–5, for 202,600 MDA/2-2 fits per normalization. The original-resolution within-scatter and unit-L2 outputs remain separate under [`results/2026-11-09-paper-proximate-full-grid/`](../../results/2026-11-09-paper-proximate-full-grid/) and [`results/2026-11-09-paper-proximate-full-grid-unit-l2/`](../../results/2026-11-09-paper-proximate-full-grid-unit-l2/). These were produced by the direct implementation and remain the canonical complete datasets; corrected cached fits were checked only where the stopped diagnostic exposed numerical sensitivity.
 
 ## Paper method compared with our implementation
 
@@ -81,21 +81,21 @@ One direct, gallery-size-5 split was profiled over 12 representative dimension p
 
 | Stage | Time across 12 fits | Share of MDA fit time |
 |---|---:|---:|
-| Scatter construction | 0.657 s | 44.0% |
-| Eigen-decomposition | 0.269 s | 18.0% |
-| Other projection and iteration work | 0.568 s | 38.0% |
-| 1-NN classification | 0.011 s | 0.75% of fit plus classification |
+| Scatter construction | 0.530 s | 43.6% |
+| Eigen-decomposition | 0.250 s | 20.6% |
+| Other projection and iteration work | 0.435 s | 35.8% |
+| 1-NN classification | 0.010 s | 0.79% of fit plus classification |
 
-Data loading took 0.032 s and 64-level equalization 0.026 s for the entire dataset. The expensive part is repeated MDA fitting, especially scatter construction and iteration, not classification or preprocessing.
+Data loading took 0.029 s and 64-level equalization 0.025 s for the entire dataset. The expensive part is repeated MDA fitting, especially scatter construction and iteration, not classification or preprocessing.
 
 ### Validated implementation changes
 
 1. Cache class labels, counts and membership once per train/probe split. The class-wise scatter equations are unchanged.
-2. Reuse the first row update across all dimension pairs and the first column update across all column dimensions for a given row dimension. At identity initialization, those updates do not depend on the requested output dimensions beyond taking the leading basis columns. This removes thousands of repeated first-iteration scatter/eigen calculations.
+2. Reuse the first row and per-row first-column eigensystem factorizations across dimension pairs. Form each requested-size projection with the same shape-specific matrix multiplication as a direct fit, rather than multiplying a full basis and truncating it. This avoids repeated first-iteration scatter/eigen calculations while preserving finite-precision behavior on nearly singular cases.
 3. Keep worker execution as threads sharing the same read-only image arrays; no per-fit process copy is introduced.
 4. Measure fit and 1-NN separately and record only the final MDA objective when the paper's projection-change rule is used. Objective logging does not affect that stopping rule.
 
-On the actual 112×92 ORL images, direct and cached fits were compared on 12 representative pairs for both normalizations. After aligning arbitrary eigenvector signs, the largest relative Frobenius projection differences were 7.0e-9 (row) and 1.21e-8 (column) for unit-L2, and 2.45e-10 and 2.08e-10 for within-scatter. Relative differences in all train/probe squared distances were at most 5.53e-11 and 4.59e-12 respectively. Across these checks, predictions and iteration counts matched exactly; objective differences were at most 6.90e-11 and 2.31e-12. These are representative numerical-equivalence checks, not a second exhaustive validation.
+The original optimization reused full-basis prefixes. A three-split unit-L2 diagnostic exposed that shape-dependent matrix multiplication could change roundoff for near-singular gallery-size-2 fits: among 30,390 matched MDA/2-2 rows, two accuracies and 16 stopping counts differed. The discrepancy was not from the scatter equations; it came from tiny projection perturbations that changed tied/ill-conditioned eigendirections. The cache was changed to reuse eigensystem factorizations, then produce each requested-size projection with the direct solver's operation shape. We rechecked all 17 configurations flagged by accuracy, stopping count, or objective screening under both unit-L2 and within-scatter normalization. Corrected direct and cached fits matched exactly for predictions, accuracies, iteration counts, projections, distances, and objectives, and recomputed direct fits matched the canonical accuracy/iteration rows. This is targeted numerical validation; the full dimension grid was not repeated.
 
 ### Worker and BLAS benchmark
 
@@ -103,17 +103,17 @@ The repeatability benchmark evaluates 12 small-to-large dimension pairs, five ti
 
 | Implementation | Workers | BLAS threads | Fits/s | Peak RSS |
 |---|---:|---:|---:|---:|
-| Direct | 8 | 1 | 32.79 | 0.88 GiB |
-| Direct | 14 | 1 | 35.23 | 1.14 GiB |
-| Direct | 16 | 1 | 35.25 | 1.26 GiB |
-| Cached | 8 | 1 | 37.79 | 0.69 GiB |
-| Cached | 10 | 1 | 39.22 | 0.74 GiB |
-| Cached | 14 | 1 | 39.73 | 0.91 GiB |
-| Cached | 16 | 1 | 40.79 | 0.89 GiB |
-| Cached | 16 | 2 | 39.25 | 0.87 GiB |
-| Cached | 16 | 4 | 39.03 | 0.93 GiB |
+| Direct | 14 | 1 | 40.50 | 1.19 GiB |
+| Direct | 16 | 1 | 39.97 | 1.21 GiB |
+| Corrected cached | 8 | 1 | 42.88 | 0.72 GiB |
+| Corrected cached | 14 | 1 | 47.48 | 0.91 GiB |
+| Corrected cached | 16 | 1 | 46.91 | 0.97 GiB |
+| Corrected cached | 16 | 2 | 45.06 | 0.95 GiB |
+| Corrected cached | 16 | 4 | 45.27 | 0.91 GiB |
 
-For this fixed representative workload, 16 workers was fastest; 14 was only about 2.7% slower. One BLAS thread per fit was best. Extrapolating 40.79 fits/s to 202,600 fits gives about 1 h 22 m 47 s, plus roughly two seconds of cache setup over the 20 splits. At 14 workers the estimate is about 1 h 25 m. These are projections from a 60-fit representative batch, not a rerun of the full experiment. They imply about 1.69× the original overall run throughput; actual total time may differ across gallery sizes.
+The latest representative workload used 60 fits at gallery size 5 and split seed 8314. Fourteen workers with one Accelerate thread was fastest in the tested corrected-cache settings. It was about 17% faster and used about 0.28 GiB less peak RSS than the direct 14-worker setting. Extrapolating 47.48 fits/s to 202,600 fits gives about 71 minutes, plus under two seconds of cache setup. This is a projection from a representative batch, not a rerun of the full experiment; gallery sizes and dimension pairs may change actual time. The original unit-L2 exhaustive run took 2 h 19 m 40 s (24.17 fits/s end-to-end), so the projection is roughly 1.96× faster than that observed run.
+
+The latest stage profile over 12 representative fits measured 0.530 s in scatter construction (43.6% of fit time), 0.250 s in eigendecomposition (20.6%), 0.435 s in other projection/iteration work (35.8%), and 0.010 s in classification (under 1%). Data loading and histogram equalization took 0.054 s total.
 
 ### Other optimization options evaluated
 
@@ -129,11 +129,11 @@ A ready-to-submit CPU job is in [`hpc/orl_mda_grid.sbatch`](../../hpc/orl_mda_gr
 
 ## Reproducible checks and outputs
 
-- Unit/regression suite: `uv run --with-requirements requirements.txt --no-project python -m unittest discover -s tests -v` — **13/13 passed**.
+- Unit/regression suite: `uv run --with-requirements requirements.txt --no-project python -m unittest discover -s tests -v` — **14/14 passed**.
 - `python -m py_compile` passed for the experiment and benchmark scripts; `git diff --check` and `bash -n hpc/orl_mda_grid.sbatch` passed.
-- Direct-vs-cache numerical results: [`numerical_equivalence_detailed.json`](../../results/2026-11-09-performance-benchmark/numerical_equivalence_detailed.json).
-- Stage and worker benchmarks: [`2026-11-09-performance-benchmark/`](../../results/2026-11-09-performance-benchmark/) and [`2026-11-09-performance-repeatability/`](../../results/2026-11-09-performance-repeatability/).
+- Corrected cache validation: [`targeted equivalence summary`](../../results/2026-11-10-optimization-boundary-validation/summary.json) and [`per-configuration comparisons`](../../results/2026-11-10-optimization-boundary-validation/targeted_equivalence.csv).
+- Latest stage and worker benchmarks: [`2026-11-10-optimized-performance/`](../../results/2026-11-10-optimized-performance/); earlier measurements remain in the dated Nov 9 folders.
 - Fixed-size nested-gallery diagnostic: [`2026-11-09-nested-gallery-diagnostic/`](../../results/2026-11-09-nested-gallery-diagnostic/).
 - Optimized sweep implementation: [`src/run_experiment.py`](../../src/run_experiment.py) and [`scripts/run_orl_dimension_sweep.py`](../../scripts/run_orl_dimension_sweep.py).
 
-No further exhaustive sweep was started. The existing results, including the interrupted pre-optimization checkpoint, remain preserved. Before claiming an unbiased generalization score, run a predeclared dimension-selection procedure using training-only validation and a separate outer test set.
+The unnecessary optimized rerun was stopped after three complete gallery-size-2 splits. Its checkpoint, objective checkpoint, and log are preserved at [`2026-11-10-optimized-full-grid-unit-l2/`](../../results/2026-11-10-optimized-full-grid-unit-l2/); those partial pre-correction rows are diagnostic only and are not used in tables or figures. The original complete outputs remain unchanged. Before claiming an unbiased generalization score, run a predeclared dimension-selection procedure using training-only validation and a separate outer test set.

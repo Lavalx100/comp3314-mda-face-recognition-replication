@@ -18,10 +18,11 @@ Once an account is approved:
    sbatch hpc/orl_mda_grid.sbatch
    ```
 
-The job writes its Slurm logs under `hpc/logs/` and experiment outputs under `results/hpc-full-grid-unit-l2/`. It checkpoints each completed gallery/repeat split. To resume an interrupted run, preserve the output directory and resubmit with `MDA_RESUME=1`:
+The job writes its Slurm logs under `hpc/logs/` and defaults to a job-specific output folder such as `results/hpc-full-grid-unit-l2-<job-id>/`. It checkpoints each completed gallery/repeat split. To resume an interrupted run, preserve the original output directory and pass that same path explicitly when resubmitting:
 
 ```bash
-MDA_RESUME=1 sbatch hpc/orl_mda_grid.sbatch
+MDA_RESUME=1 MDA_OUTPUT_DIR="results/hpc-full-grid-unit-l2-<original-job-id>" \
+  sbatch hpc/orl_mda_grid.sbatch
 ```
 
 Optional environment overrides:
@@ -33,7 +34,7 @@ MDA_OUTPUT_DIR="results/hpc-full-grid-unit-l2" \
 sbatch hpc/orl_mda_grid.sbatch
 ```
 
-The script requests the current general AMD partition (`amd`) and normal QoS, one node, 32 CPUs, 16 GB RAM, and four hours. The local M3 Max benchmark projects the full sweep at about 1 hour 23 minutes at its fastest measured setting. A 32-core AMD allocation could reduce that wall time materially, but its per-core speed, queue delay, account eligibility, and package setup have not been measured. Run a short pilot after access is granted before moving any full workload.
+The script requests the current general AMD partition (`amd`) and normal QoS, one node, 32 CPUs, 16 GB RAM, and four hours. The latest corrected local M3 Max benchmark measured 47.48 fits/s at 14 workers; projecting the full grid from that representative batch gives about 71 minutes. This is not a full-run measurement. A 32-core AMD allocation's per-core speed, queue delay, account eligibility, and package setup have not been measured. Run a short pilot after access is granted before moving any full workload.
 
 ## Why CPU instead of GPU
 

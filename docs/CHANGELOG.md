@@ -1,5 +1,16 @@
 # Change log
 
+## 2026-11-10 — Optimized default and equivalence correction
+
+- Stopped the unnecessary optimized exhaustive rerun after three complete gallery-size-2 splits; preserved the raw/objective checkpoints and run log separately from the canonical full grids.
+- Compared all 30,390 completed unit-L2 MDA/2-2 rows to the original full-grid rows. The intermediate full-basis-prefix cache had two accuracy and 16 stopping-count differences; these were traced to finite-precision changes in nearly singular eigenspaces.
+- Changed the optimized cache to reuse generalized eigensystem factorizations while forming each requested-size projection with the same shape-specific matrix multiply as a direct fit.
+- Recomputed only 17 flagged configurations under both unit-L2 and within-scatter normalization. Corrected cached/direct predictions, accuracies, iterations, projections, distances, and objectives matched exactly, and direct fits matched the canonical accuracy/iteration rows. Original full grids were not overwritten or regenerated.
+- Regenerated both heatmaps from the canonical summaries after fixing a stale subtitle that had mislabeled the unit-L2 figure as within-scatter.
+- Rebenchmarked the corrected cache: 47.48 fits/s at 14 workers and one Accelerate thread, 0.91 GiB peak RSS; the comparable direct run measured 40.50 fits/s and 1.19 GiB.
+- Updated CLI defaults and unique output paths, plus the README, audit, progress record, project website, final report, and presentation outline. The full grids remain the source for every published project table and figure.
+- Ran the full regression suite: 14/14 passed.
+
 ## 2026-11-09 — Source-fidelity correction and full-grid follow-up
 
 - Re-read the paper's Fig. 3 and corrected the MDA stopping condition to include `m'_k × m_k × epsilon`; the paper does not specify epsilon, so the chosen value is recorded per run.

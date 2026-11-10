@@ -1,95 +1,98 @@
 \documentclass[10pt]{article}
-\usepackage[margin=0.72in]{geometry}
+\usepackage[margin=0.62in]{geometry}
 \usepackage{booktabs}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 \usepackage{natbib}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{array}
-\title{A Partial Reproduction of Multilinear Discriminant Analysis for Face Recognition}
+\usepackage{microtype}
+\title{Multilinear Discriminant Analysis for Face Recognition:\\A Paper-Proximate ORL Study}
 \author{COMP3314 Group 27}
 \date{Fall 2026}
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Yan et al. proposed Multilinear Discriminant Analysis (MDA), which learns interrelated discriminative projections along the modes of an image tensor. We compare Eigenfaces PCA, Fisherfaces LDA, MDA/2-1, and MDA/2-2 on the 64$\times$64 Olivetti copy distributed by scikit-learn. Across 30 matched stratified splits, MDA/2-1 is strongest with two gallery images per identity, while Fisherfaces leads at three to five. MDA/2-2 improves with gallery size but does not lead in our fixed 6$\times$6 configuration. A projection-normalization sensitivity analysis substantially changes 1-nearest-neighbour accuracy. Because image resolution, dimensions, and split protocol differ from the paper, these results are a partial reproduction rather than an exact replication.
+Yan et al. proposed Multilinear Discriminant Analysis (MDA), which learns interrelated discriminative projections along the modes of an image tensor. We studied the method on the original 112$\times$92 ORL faces, comparing Eigenfaces PCA, Fisherfaces LDA, MDA/2-1, and MDA/2-2 with Euclidean 1-nearest-neighbour. On 30 matched splits at fixed dimensions, MDA/2-1 performs best in our implementation; MDA/2-2 is highly sensitive to projection-axis scaling. Five-repeat searches over all 10,130 feasible MDA/2-2 dimension pairs show a large gap from the paper's selected scores. Our work follows the stated equations and update order, but exact reproduction is not possible from the published details: preprocessing defaults, split seeds, eigenvector scaling, singular-scatter handling, and the dimension-selection protocol are not fully specified.
 \end{abstract}
 
-\section{Problem and motivation}
-Vector-based PCA and LDA flatten an image into one long feature vector. This discards the explicit row/column organization and can produce a high-dimensional problem when labeled training images are scarce. MDA represents an image as a matrix and alternately optimizes discriminative projections along its modes. The paper's discriminant tensor criterion seeks between-identity separation while reducing within-identity variation \citep{Yan2007MDA}. This study asks whether that structure improves recognition over vector-based baselines under a common split and classifier.
-
-\section{Methods}
-We use the scikit-learn Olivetti loader: 400 grayscale images from 40 identities, 10 images each, resized to 64$\times$64. Images are equalized individually. For each identity, 2, 3, 4, or 5 images are sampled for training and the rest are probes. Thirty deterministic stratified splits are generated per gallery size; all methods share each split. Projections are learned only from training images.
-
-The compared representations are Eigenfaces PCA (36 components), Fisherfaces LDA (PCA pre-reduction and regularized LDA), MDA/2-1 (one learned image mode; the other remains identity), and MDA/2-2 (alternating row/column projections with six output features per mode). All use Euclidean 1-nearest-neighbour. We report mean accuracy and sample standard deviation over 30 splits. The primary MDA axes use unit-L2 normalization; a same-seed sensitivity run uses within-scatter normalization. Paired comparisons compute MDA/2-2 minus each baseline on each shared split and report percentile bootstrap ranges from 10,000 resamples.
-
-\section{How the method works}
-For a face image matrix $X$, MDA/2-2 learns a row projection $U$ and a column projection $V$, then represents the face by $U^{\top}XV$. Its discriminant tensor criterion (DTC) is the tensor-space version of Fisher's idea: increase separation between identity means while reducing variation among images of the same identity:
+\section{Problem and method}
+Vector-based PCA and LDA flatten an image into one long feature vector. MDA instead keeps an image as a matrix and learns projections along its row and column modes. For image $X_i\in\mathbb{R}^{h\times w}$, the two-mode feature is $U^\top X_i V$. MDA's discriminant tensor criterion extends Fisher's between- versus within-class idea:
 \begin{equation*}
-J(U,V)=\frac{S_B(U,V)}{S_W(U,V)}
-=\frac{\sum_c n_c\left\|U^{\top}(\bar X_c-\bar X)V\right\|_F^2}
-{\sum_c\sum_{i:y_i=c}\left\|U^{\top}(X_i-\bar X_c)V\right\|_F^2}.
+J(U,V)=
+\frac{\sum_c n_c\left\|U^\top(\bar X_c-\bar X)V\right\|_F^2}
+{\sum_c\sum_{i:y_i=c}\left\|U^\top(X_i-\bar X_c)V\right\|_F^2}.
 \end{equation*}
-Here, $\bar X_c$ is the mean face matrix for identity $c$, $\bar X$ is the overall mean, and $n_c$ is that identity's training count. Jointly choosing $U$ and $V$ is hard, so the paper's alternating mode procedure holds one projection fixed, unfolds the projected matrices along the other mode, and solves a generalized eigenproblem from the resulting within- and between-identity scatter matrices. It alternates row and column updates until the objective stabilizes. MDA/2-1 updates only one image mode; MDA/2-2 updates both.
+Here $\bar X_c$ and $\bar X$ are the gallery class and overall means, and $n_c$ is the gallery count for identity $c$. With one mode fixed, the other is updated from class-weighted between-class scatter and pooled within-class scatter, then a generalized eigenproblem is solved. MDA/2-1 updates one mode; MDA/2-2 alternates row then column updates from identity initialization.
 
 \begin{center}
 \fbox{\parbox{0.94\linewidth}{\centering
-\textbf{Face as matrix} $X\in\mathbb{R}^{h\times w}$
+\textbf{ORL face matrix} $X$
 \quad$\longrightarrow$\quad
-\textbf{Learn both modes} $U^{\top}XV$
+\textbf{Learn row and column axes} $U^\top X V$
 \quad$\longrightarrow$\quad
-\textbf{Compare to gallery} (Euclidean 1-NN)\\[3pt]
-\small Update row projection $U$; update column projection $V$; repeat. For MDA/2-1, keep one mode at identity.}}
+\textbf{Euclidean 1-NN identity}\\[3pt]
+\small MDA/2-1 learns one axis; MDA/2-2 alternates both axes.}}
 \end{center}
 
-This connects directly to course material: PCA finds directions of high variance without labels; LDA uses labels to favor between-class scatter over within-class scatter; both LDA and each MDA mode update lead to generalized eigenproblems. Nearest-neighbour classification then depends on distances in the learned feature space. In particular, Euclidean distance is scale-sensitive, which motivates our normalization sensitivity experiment. The training Fisher ratio is an optimization diagnostic, not a substitute for held-out recognition accuracy.
+This connects to course topics: PCA is unsupervised variance reduction; LDA uses labels to separate classes; each MDA mode update also solves a generalized eigenproblem. The classifier uses Euclidean distances in the resulting feature space, so changing axis scales can change predictions.
 
-\section{Paper protocol versus our study}
-The paper's ORL experiment reports that MDA/2-2 has the best recognition accuracy among the compared methods for all four gallery sizes, with its advantage especially strong when few training images are available \citep{Yan2007MDA}. Our results do not reproduce that ranking under the present implementation. The comparison is not like-for-like:
-\begin{center}
-\small
-\begin{tabular}{>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{0.37\linewidth}>{\raggedright\arraybackslash}p{0.36\linewidth}}
-\toprule
-Item & Yan et al. (2007) & Group 27 follow-up \\
-\midrule
-Images & Original ORL, normalized to $92\times112$ pixels & scikit-learn's $64\times64$ Olivetti copy \\
-Preprocessing & Grayscale, histogram equalization & Grayscale, per-image histogram equalization \\
-Feature settings & Best results across tested feature dimensions; Fisherface/O denotes best LDA dimension & 36-D PCA and Fisherfaces; MDA/2-2 uses $6\times6$ \\
-Evaluation summary & Best recognition rates over four gallery/probe settings & Mean $\pm$ SD over 30 deterministic matched splits per setting \\
-Classifier & Nearest neighbour & Euclidean 1-nearest-neighbour \\
-\bottomrule
-\end{tabular}
-\end{center}
-We match the broad comparison and nearest-neighbour idea, but not the original image resolution, dimension search, or exact partitions. These differences—and the explicit scaling sensitivity—are plausible contributors to the large gap between the paper's reported MDA/2-2 accuracy and our measurements. A faithful numerical reproduction would first need verified source images, exact preprocessing and feature-selection rules, and a matching split protocol.
+\section{Data and protocol}
+We use the Cambridge ORL archive: 400 grayscale images, 40 identities, 10 images per identity, at 112$\times$92 pixels. Each image is equalized independently. The paper specifies histogram equalization but not its software or output levels; we use 64 output levels as a MATLAB-default-aligned approximation. Per identity, 2, 3, 4, or 5 images form the gallery; the rest are probes. All projections are fit on gallery images only, and every method shares each deterministic split. The seed rule is $3314+1000g+r$, where $g$ is gallery size and $r$ is zero-based repeat index.
 
-\clearpage
+The fixed-setting study uses 30 splits per gallery size: PCA with 36 components; Fisherfaces with full $N-C$ PCA pre-reduction and up to 36 LDA components; MDA/2-1 with six row components; and MDA/2-2 with $6\times6$ components. Euclidean 1-nearest-neighbour is used throughout. The primary MDA results use unit-L2 eigenvector axes; within-scatter normalization is retained as a sensitivity setting. For the paper-style MDA stopping rule, after iteration 2 each projection change is compared with $m'_k m_k\epsilon$. The article does not report $\epsilon$; we use $10^{-4}$ and a 10-iteration cap. A relative $10^{-6}$ ridge regularizes singular within-class scatter.
+
 \section{Results}
 \begin{table}[h]
 \centering
-\caption{Group-computed probe accuracy (mean $\pm$ sample SD, percent). These are not paper Table I values.}
-\begin{tabular}{crrrr}
+\small
+\caption{Fixed-setting probe accuracy, mean $\pm$ sample SD over 30 matched splits (percent). Paper values are the reported best MDA/2-2 scores, selected over feature dimensions; they are not directly comparable to our fixed $6\times6$ results.}
+\begin{tabular}{crrrrrr}
 \toprule
-Train/person & PCA & Fisherfaces & MDA/2-1 & MDA/2-2 \\
+Gallery & PCA & Fisherfaces & MDA/2-1 & MDA/2-2 & MDA/2-2 & Paper MDA/2-2\\
+images/person & & & & unit-L2 & within-scatter & best\\
 \midrule
-2 & 65.7 $\pm$ 2.3 & 70.6 $\pm$ 2.6 & 72.5 $\pm$ 3.5 & 42.4 $\pm$ 4.6 \\
-3 & 75.3 $\pm$ 2.6 & 84.7 $\pm$ 2.9 & 83.2 $\pm$ 2.4 & 66.7 $\pm$ 3.7 \\
-4 & 81.0 $\pm$ 3.6 & 90.0 $\pm$ 2.2 & 87.4 $\pm$ 2.5 & 82.2 $\pm$ 3.3 \\
-5 & 85.0 $\pm$ 2.4 & 93.3 $\pm$ 1.3 & 90.2 $\pm$ 2.3 & 88.1 $\pm$ 2.6 \\
+2 & 73.9 $\pm$ 2.5 & 73.1 $\pm$ 2.8 & 81.4 $\pm$ 3.0 & 34.8 $\pm$ 5.3 & 5.4 $\pm$ 1.9 & 90.1\\
+3 & 84.1 $\pm$ 1.8 & 84.9 $\pm$ 2.9 & 89.9 $\pm$ 2.2 & 52.6 $\pm$ 5.6 & 23.9 $\pm$ 10.3 & 95.0\\
+4 & 88.2 $\pm$ 3.0 & 88.0 $\pm$ 2.4 & 92.0 $\pm$ 2.2 & 75.8 $\pm$ 3.6 & 64.0 $\pm$ 6.0 & 98.3\\
+5 & 91.6 $\pm$ 2.0 & 90.4 $\pm$ 2.2 & 94.7 $\pm$ 1.7 & 87.5 $\pm$ 2.8 & 81.4 $\pm$ 3.8 & 99.0\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Accuracy generally rises with gallery size. MDA/2-1 leads at two training images per identity, whereas Fisherfaces leads at three to five. MDA/2-2 improves from 42.4\% to 88.1\% but does not lead in this configuration. For two training images, paired MDA/2-2 minus MDA/2-1 is $-30.1$ percentage points (95\% percentile bootstrap range $[-32.0,-28.3]$); for five images, MDA/2-2 is $3.1$ points above PCA but $5.2$ below Fisherfaces. These bootstrap ranges describe variation across generated splits conditional on this one dataset; they are not population-level confidence intervals or significance tests. On the same two-image splits, changing from unit-L2 to within-scatter normalization changes Fisherfaces from 70.6\% to 31.5\% and MDA/2-2 from 42.4\% to 20.1\%. Since Euclidean 1-NN is scale-sensitive, the result depends on the feature convention.
+MDA/2-1 leads our fixed-setting comparison at all four gallery sizes. MDA/2-2 improves as the gallery grows, but its accuracy changes sharply with axis normalization. This is not a controlled reconstruction of the paper's chosen dimensions, and the paper does not identify its exact eigenvector scaling convention.
 
-\section{Critical analysis and limitations}
-Shared partitions and classifier improve fairness, and training-only fitting avoids test leakage. Fixed feature dimensions are not nested-validation selected, and the 64$\times$64 images differ from original ORL resolution (92$\times$112). The paper reports best accuracies across its configurations, while we report means across repeated random splits. Consequently, direct numerical equality is neither expected nor claimed. The sensitivity result also shows that a representation and its distance metric must be considered together. The main remaining improvements are a paper-faithful source dataset and settings, independent code review, and validation-based dimension selection.
+\begin{table}[h]
+\centering
+\small
+\caption{Highest mean accuracy for a single MDA/2-2 dimension pair across five splits, percent. The selected pair is chosen using those same probe scores, so these maxima are optimistic diagnostics, not unbiased test estimates.}
+\begin{tabular}{crrr}
+\toprule
+Gallery images/person & Within-scatter best & Unit-L2 best & Unit-L2 pair\\
+\midrule
+2 & 62.44 & 61.81 & $112\times86$\\
+3 & 57.29 & 82.29 & $64\times46$\\
+4 & 77.92 & 90.75 & $40\times26$\\
+5 & 88.60 & 94.90 & $30\times22$\\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\section{Conclusion}
-This partial reproduction does not show a universal MDA advantage. Under the chosen settings, one-mode MDA is competitive at the smallest gallery size, Fisherfaces is strongest at larger sizes, and two-mode MDA improves with more data without leading. Our contribution is a transparent comparison with preserved split-level results and an explicit scaling caveat.
+The gallery-size-3 dip occurs only in the probe-selected within-scatter grid. In a separate 30-split nested-gallery diagnostic with dimension fixed at $6\times6$, adding a third image improves mean accuracy from 34.57\% to 53.05\% with unit-L2 axes, and from 5.47\% to 26.70\% with within-scatter axes. Thus the selected-grid dip does not show that adding a gallery image generally hurts recognition. The full unit-L2 and within-scatter heatmaps and split-level CSVs are linked from the repository overview.
+
+\section{Critical analysis}
+The paper's MDA/2-2 Table I values are 90.1\%, 95.0\%, 98.3\%, and 99.0\% for gallery sizes 2--5 \citep{Yan2007MDA}. Our selected grid values remain lower, particularly at gallery sizes 2--4. The gap cannot be attributed to one factor from the available evidence. The paper does not give random split seeds, full dimension ranges, exact preprocessing software/defaults, the eigenvector scaling convention, the treatment of singular scatter, or its dimension-selection protocol. Our gallery-only fitting avoids probe leakage in the learned projections, but selecting the best dimension by probe accuracy reuses the reported labels and inflates the grid maxima. A less biased estimate needs training-only dimension selection followed by an untouched outer test set; that would be a distinct evaluation protocol.
+
+\section{Implementation, efficiency, and reproducibility}
+The original full grids remain the canonical experimental tables: each normalization has five repeats over 10,130 feasible pairs, or 202,600 MDA/2-2 fits. They were generated with the direct implementation. The optimized sweep is now the default for future dimension searches. It reuses class grouping and generalized eigensystem factorizations, then forms each requested-size projection with the same shape-specific matrix multiply as the direct solver. A cache that reused truncated full bases caused rare iteration and accuracy differences on nearly singular gallery-size-2 fits; that path was corrected. The 17 configurations flagged by the interrupted run were rechecked under both normalizations: corrected direct and cached fits had identical predictions, accuracies, iteration counts, projections, distances, and objectives. Recomputed direct fits also matched the canonical accuracy and iteration counts. No exhaustive rerun was scientifically necessary.
+
+On the M3 Max, the corrected cached path measured 47.48 fits/s at 14 workers and one Accelerate thread (0.91 GiB peak RSS) over 60 representative fits; the direct path measured 40.50 fits/s (1.19 GiB). The projected time for 202,600 fits is about 71 minutes from this representative batch, not a completed full-run timing. Classification was below 1\% of fit time; scatter construction and eigendecomposition were the largest profiled stages. The interrupted partial checkpoint is retained for audit and is not used in the canonical tables. No remote HPC access was assumed or used.
+
+The paper provides a foundation for MDA's tensor formulation and alternating update method, but this study does not numerically reproduce its best-tuned table. The strongest result is a transparent ORL implementation with preserved full-grid evidence, explicit assumptions, and a tested efficient path for future sweeps.
 
 \section*{Reproducibility and attribution}
-Code, environment versions, protocol, raw scores, summaries, and sensitivity outputs are included in the repository. The dataset is loaded through scikit-learn; credit AT\&T Laboratories Cambridge. No face images are redistributed. See \url{https://scikit-learn.org/stable/datasets/real_world.html#olivetti-faces-dataset} and \citep{Yan2007MDA}.
+Source, environment, raw split-level results, dimension summaries, visualizations, validation records, and run commands are in the private Group 27 repository. ORL data are loaded from the Cambridge archive and are not redistributed. Cite the original paper \citep{Yan2007MDA} and the ORL database. The local overview links directly to both full grids, the corrected fixed-setting results, and the optimization validation.
 
 \bibliographystyle{plainnat}
 \bibliography{references}

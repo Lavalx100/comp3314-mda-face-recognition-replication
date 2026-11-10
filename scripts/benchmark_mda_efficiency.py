@@ -17,7 +17,9 @@ import subprocess
 import sys
 import tempfile
 import time
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -88,8 +90,13 @@ def run_child(args: argparse.Namespace) -> dict:
         initial_iterations = 0
         initial_history = None
         if initial_cache is not None:
-            row_basis, col_basis = initial_cache[row_dim]
-            initial_projections = (row_basis, col_basis[:, :col_dim])
+            row_basis, col_eigensystem = initial_cache[row_dim]
+            col_basis = experiment.project_generalized_eigensystem(
+                col_eigensystem,
+                col_dim,
+                projection_normalization=args.normalization,
+            )
+            initial_projections = (row_basis, col_basis)
             initial_iterations = 1
             initial_history = [float("nan")]
         started_fit = time.perf_counter()
@@ -211,6 +218,9 @@ def run_child(args: argparse.Namespace) -> dict:
 
 
 def parent_main(args: argparse.Namespace) -> None:
+    if args.output_dir is None:
+        timestamp = datetime.now(ZoneInfo("Asia/Hong_Kong")).strftime("%Y%m%d-%H%M%S")
+        args.output_dir = Path("results/runs") / f"{timestamp}-mda-performance-benchmark"
     args.output_dir.mkdir(parents=True, exist_ok=True)
     worker_counts = parse_ints(args.worker_counts)
     blas_counts = parse_ints(args.blas_counts)
@@ -235,6 +245,7 @@ def parent_main(args: argparse.Namespace) -> None:
                 "--blas-threads", str(blas),
                 "--pair-repeats", str(args.pair_repeats),
                 "--gallery-size", str(args.gallery_size),
+                "--seed", str(args.seed),
                 "--normalization", args.normalization,
                 "--archive", str(args.archive.resolve()),
                 "--output-json", str(output_path),
@@ -288,6 +299,10 @@ def parent_main(args: argparse.Namespace) -> None:
         "pair_repeats": args.pair_repeats,
         "normalization": args.normalization,
         "gallery_size": args.gallery_size,
+        "base_seed": args.seed,
+        "split_seed": args.seed + 1000 * args.gallery_size,
+        "worker_counts": worker_counts,
+        "blas_counts": blas_counts,
         "note": "Representative configuration benchmark only; no exhaustive grid is run.",
     }
     (args.output_dir / "benchmark_metadata.json").write_text(
@@ -299,12 +314,13 @@ def parent_main(args: argparse.Namespace) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, default=Path(".cache/orl-original/att_faces.zip"))
-    parser.add_argument("--output-dir", type=Path, default=Path("results/2026-11-09-performance-benchmark"))
+    parser.add_argument("--output-dir", type=Path, default=None,
+                        help="Output directory; defaults to a timestamped results/runs folder.")
     parser.add_argument("--worker-counts", default="1,2,4,8,10,12,14,16")
     parser.add_argument("--blas-counts", default="1,2,4")
     parser.add_argument("--pair-repeats", type=int, default=2)
     parser.add_argument("--gallery-size", type=int, default=5)
-    parser.add_argument("--seed", type=int, default=20261109)
+    parser.add_argument("--seed", type=int, default=3314)
     parser.add_argument("--normalization", choices=("unit_l2", "within_scatter"), default="unit_l2")
     parser.add_argument("--histogram-levels", type=int, default=64)
     parser.add_argument("--max-iter", type=int, default=10)

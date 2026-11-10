@@ -9,7 +9,7 @@ There are two intentionally separate protocols:
 
 - Both versions contain 400 grayscale faces, 40 identities, and 10 images per identity.
 - The paper uses original-resolution grayscale images; the scikit-learn copy is downsampled to 64×64.
-- Apply per-image 8-bit histogram equalization before splitting. This transform is image-local and uses no identity labels or population-level test statistics. The article does not specify the equalization implementation or number of levels. We retain the earlier 256-level transform and add a 64-level approximation of MATLAB's documented default as a closer-source sensitivity.
+- Apply per-image 8-bit histogram equalization before splitting. This transform is image-local and uses no identity labels or population-level test statistics. The article does not specify the equalization implementation or number of levels. The current paper-proximate default is a 64-level approximation of MATLAB's documented default; the earlier 256-level transform remains in historical artifacts.
 - Cache data under `.cache/`; do not add archives or face images to Git.
 
 ## Partitions
@@ -46,6 +46,7 @@ Rerun the same split seed rule with `--projection-normalization within_scatter`;
 - The archived partial run uses 64×64 faces; only the original-resolution follow-up uses 112×92 source images.
 - In the fixed-setting comparison, feature dimensions are fixed (PCA 36, Fisherfaces up to 36, MDA 6 per projected mode); the paper reports best results across choices, so this table is not like-for-like with its best-tuned values.
 - The original-resolution follow-up now supports a full feasible integer dimension grid. It cannot recover the authors' undocumented choices. Do not present the highest probe-selected grid result as unbiased accuracy.
+- Dimension-sweep runs reuse class grouping and the first row/per-row column generalized eigensystem factorizations. They form each requested output dimension using the same shape-specific matrix multiplication as the direct fit. The canonical full grids were produced by the direct path; targeted comparisons validate the optimized cache without repeating all fits.
 - The `best_by_gallery.csv` dimensions are selected with the same probe scores used for reporting. This is test-set leakage. Use the per-dimension results as descriptive reproduction evidence, and use training-only validation plus an untouched outer test set for an unbiased model-selection estimate.
 - The five-split run is exploratory. The 30-split follow-up improves the description of split variability but still uses one fixed small dataset and does not establish population-wide uncertainty.
 - Hyperparameter selection must use training-only or validation data, never final probe scores.

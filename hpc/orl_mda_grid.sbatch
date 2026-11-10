@@ -16,7 +16,7 @@ cd "${SLURM_SUBMIT_DIR}"
 
 PYTHON_BIN="${MDA_PYTHON:-python3}"
 ORL_ARCHIVE="${MDA_ARCHIVE:-${HOME}/data/att_faces.zip}"
-OUTPUT_DIR="${MDA_OUTPUT_DIR:-results/hpc-full-grid-unit-l2}"
+OUTPUT_DIR="${MDA_OUTPUT_DIR:-results/hpc-full-grid-unit-l2-${SLURM_JOB_ID:-manual}}"
 
 if [[ ! -f "${ORL_ARCHIVE}" ]]; then
   echo "ORL archive not found: ${ORL_ARCHIVE}" >&2

@@ -2,7 +2,7 @@
 
 This is the working research repository for COMP3314 Group 27's study of Yan et al., “Multilinear Discriminant Analysis for Face Recognition” (IEEE TIP, 2007). It records the research question, implementation, protocols, run artifacts, limitations, progress, and handoff materials.
 
-**Current status (2026-11-09):** the corrected fixed-setting runs and both full 10,130-pair original-resolution grids are complete. The MDA pipeline has been audited for paper fidelity and probe-set leakage, then profiled and optimized with representative numerical-equivalence checks. The optimized implementation was not used to overwrite or rerun the exhaustive grids. See the [full correctness and performance audit](docs/experiments/2026-11-09-paper-proximate-reproduction.md), [progress](docs/PROGRESS.md), and [optional HKU HPC setup](hpc/README.md).
+**Current status (2026-11-10):** the corrected fixed-setting runs and both full 10,130-pair original-resolution grids are complete and remain the canonical experimental datasets. The optimized implementation is now the default for dimension sweeps. It reuses eigensystem factorizations while preserving requested-dimension projection operations. All 17 configurations flagged by the interrupted run were rechecked under both axis normalizations; corrected cached and direct fits matched on predictions, accuracy, iteration counts, projections, distances, and objectives. The redundant exhaustive rerun was stopped after three completed diagnostic splits, and its checkpoints are preserved separately. See the [correctness and performance audit](docs/experiments/2026-11-09-paper-proximate-reproduction.md), [optimization validation record](docs/experiments/2026-11-10-optimized-default-and-equivalence.md), [progress](docs/PROGRESS.md), and [optional HKU HPC setup](hpc/README.md).
 
 **GitHub:** [private working repository](https://github.com/Lavalx100/comp3314-mda-face-recognition-replication) · Review attribution and course policy as a group before making it public.
 
@@ -57,17 +57,17 @@ python3 src/run_experiment.py --dataset orl-original --histogram-levels 64 \
 python3 scripts/analyze_paired_results.py results/rerun/orl-original/unit_l2/raw_results.csv
 ```
 
-The closest feasible integer-dimension grid can be rerun with the optimized implementation:
+The full feasible integer-dimension grid uses the optimized implementation by default. This example writes to a separate dated directory, checkpoints after every split, and uses the M3 Max benchmark's best worker/BLAS setting:
 
 ```bash
 python3 scripts/run_orl_dimension_sweep.py --full-mda-grid \
   --histogram-levels 64 --projection-normalization unit_l2 \
   --paper-epsilon 1e-4 --mda-stopping paper_figure --mda-order row_first \
   --max-iter 10 --workers 14 --repeats 5 --seed 3314 \
-  --output-dir results/rerun/orl-original/full-dimension-grid
+  --output-dir results/runs/example-optimized-full-dimension-grid
 ```
 
-The sweep writes a checkpoint after every completed split and reuses the first MDA iteration across feasible dimension pairs. On the M3 Max benchmark, 14 workers was within 3% of the fastest tested setting. If interrupted, rerun the same command with `--resume`; changing the dataset hash or sweep settings will reject the checkpoint. Existing full-grid results are complete, so there is no need to rerun them just to use this optimization.
+The optimized path reuses the first row and column eigensystem factorizations across dimensions, then forms each requested-size projection with the same shape-specific multiply as a direct fit. This avoids repeated scatter/eigensolver work without the rounding differences caused by truncating a full projection basis. On the M3 Max, 14 workers and one Accelerate thread measured 47.48 fits/s on a representative batch. If interrupted, rerun with the same arguments and `--resume`; changing the dataset hash or sweep settings is rejected. **The existing full grids do not need to be rerun just to use this optimization.** Their original direct-run CSVs remain canonical and all figures/tables in this repository use those complete outputs.
 
 Quick smoke run (not for reported results):
 
@@ -79,11 +79,13 @@ python3 src/run_experiment.py --train-per-class 2,5 --repeats 1 --max-iter 2 \
 ## Repository map
 
 ```text
-src/run_experiment.py      PCA, Fisherfaces, MDA/2-1, MDA/2-2, and run outputs
+src/run_experiment.py      PCA, Fisherfaces, MDA/2-1, MDA/2-2, and fixed-setting runs
 src/orl_data.py            Reader for the original Cambridge PGM archive
 scripts/analyze_paired_results.py  Paired split differences and bootstrap ranges
-scripts/run_orl_dimension_sweep.py  Original-resolution feature-dimension sweep
+scripts/run_orl_dimension_sweep.py  Original-resolution sweep; cached eigensystem reuse is default
 scripts/benchmark_mda_efficiency.py  Representative stage and worker-count benchmark
+scripts/validate_mda_cache_equivalence.py  Compares interrupted rows and rechecks flagged unit-L2 fits
+scripts/validate_mda_targeted_equivalence.py  Rechecks selected settings under either normalization
 scripts/run_nested_gallery_diagnostic.py  Fixed-6×6 nested 2-vs-3 gallery diagnostic
 scripts/render_mda_dimension_heatmap.py  SVG visualization of the MDA/2-2 grid
 tests/                     Deterministic unit tests for core functions
@@ -94,13 +96,13 @@ docs/paper-notes.md        Paper summary and original ORL comparison values
 docs/experiments/          Dated experiment records and handoff notes
 docs/PROGRESS.md           Status, completed work, and next steps
 docs/CHANGELOG.md          Human-readable project change history
-report/main.tex            Preliminary report source based on the earlier 64×64 study; update before submission
+report/main.tex            Current original-resolution study report source
 slides/                    Nine-minute presentation outline and Q&A prep
 site/index.html            Local research overview, plan, results, and team roles
 hpc/                       Optional HKU HPC2021 CPU SLURM setup (not submitted)
 ```
 
-The report source is preliminary and describes the earlier 64×64 study. It needs updating with the original-resolution results before submission; the old compiled PDF is not included so it cannot be mistaken for the final report.
+The report source now reflects the original-resolution protocol, fixed-setting results, full-grid comparison, leakage limitation, and validated optimization. Both full-grid heatmaps are regenerated from their canonical summaries and correctly label their normalization. The rendered report is in `output/pdf/`.
 
 ## Corrected paper-proximate fixed-setting results
 
@@ -127,6 +129,19 @@ The full 112×92 grid has 10,130 dimension pairs after applying Theorem 2's rank
 | 5 | 88.60% | 94.90% | 30×22 |
 
 The gallery-size-3 dip appears in the within-scatter grid only. A fixed-dimension 30-repeat nested split shows accuracy increasing from two to three gallery images for both normalizations. The audit discusses why the selected-grid dip is an interaction of axis scaling, dimension selection and split variation, not a general penalty for adding an image.
+
+Both heatmaps can be regenerated from the saved summaries without fitting any models. Pass the normalization explicitly so the SVG title, accessible description, and subtitle match the source grid:
+
+```bash
+python3 scripts/render_mda_dimension_heatmap.py \
+  results/2026-11-09-paper-proximate-full-grid-unit-l2/dimension_summary.csv \
+  results/2026-11-09-paper-proximate-full-grid-unit-l2/mda22_dimension_heatmap.svg \
+  --normalization unit_l2
+python3 scripts/render_mda_dimension_heatmap.py \
+  results/2026-11-09-paper-proximate-full-grid/dimension_summary.csv \
+  results/2026-11-09-paper-proximate-full-grid/mda22_dimension_heatmap.svg \
+  --normalization within_scatter
+```
 
 ## Historical October original-resolution results (superseded)
 

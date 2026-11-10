@@ -15,3 +15,4 @@ output/pdf/*.bbl
 output/pdf/*.blg
 output/pdf/*.log
 output/pdf/*.out
+/tmp/pdfs/

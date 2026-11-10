@@ -1,0 +1,31 @@
+{
+  "archive_sha256": "509d763bd2276aa054d260d7f1000e8be212738134f2f83d8ff13bc2adf1c8ec",
+  "train_per_class": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "mda_dimensions": [
+    2,
+    4,
+    6,
+    8,
+    12
+  ],
+  "full_mda_grid": true,
+  "repeats": 5,
+  "seed": 3314,
+  "max_iter": 10,
+  "tolerance": 0.0001,
+  "paper_epsilon": 0.0001,
+  "histogram_levels": 64,
+  "workers": 16,
+  "scatter_aggregation": "class-membership-matrix",
+  "scatter_label_grouping": "cached-per-split",
+  "first_iteration_cache": "row-first identity-initialized prefix reuse",
+  "mda22_objective_log": "final-only",
+  "projection_normalization": "unit_l2",
+  "mda_order": "row_first",
+  "mda_stopping": "paper_figure"
+}

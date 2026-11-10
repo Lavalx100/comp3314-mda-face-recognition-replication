@@ -18,7 +18,9 @@ import os
 import sys
 import time
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 # NumPy on Apple Silicon uses Accelerate, which threadpoolctl does not expose.
 # Set vecLib's default before NumPy loads; callers can override this in the
@@ -40,6 +42,7 @@ from run_experiment import (  # noqa: E402
     fit_pca,
     make_class_grouping,
     precompute_mda22_first_iteration,
+    project_generalized_eigensystem,
     predict_nearest_neighbor,
     stratified_split,
     write_csv,
@@ -146,7 +149,7 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
         "scatter_aggregation": "class-membership-matrix",
         "scatter_label_grouping": "cached-per-split",
         "first_iteration_cache": (
-            "row-first identity-initialized prefix reuse"
+            "row-first reuse of identity-initialized scatter eigensystems; requested-size projections"
             if args.mda_order == "row_first" and args.mda_stopping == "paper_figure"
             else "disabled for this update order/stopping rule"
         ),
@@ -302,8 +305,13 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
                 initial_iterations = 0
                 initial_history = None
                 if initial_projection_cache is not None:
-                    initial_row, full_initial_col = initial_projection_cache[row_dim]
-                    initial_projections = (initial_row, full_initial_col[:, :col_dim])
+                    initial_row, col_eigensystem = initial_projection_cache[row_dim]
+                    initial_col = project_generalized_eigensystem(
+                        col_eigensystem,
+                        col_dim,
+                        projection_normalization=args.projection_normalization,
+                    )
+                    initial_projections = (initial_row, initial_col)
                     initial_iterations = 1
                     initial_history = [float("nan")]
                 mda_train, mda_test, history = fit_mda(
@@ -443,17 +451,18 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict], l
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, default=Path(".cache/orl-original/att_faces.zip"))
-    parser.add_argument("--output-dir", type=Path, default=Path("results/2026-10-28-orl-original-dimension-sweep"))
+    parser.add_argument("--output-dir", type=Path, default=None,
+                        help="Output directory; defaults to a timestamped results/runs folder to avoid overwriting prior data.")
     parser.add_argument("--train-per-class", type=parse_int_list, default=parse_int_list("2,3,4,5"))
     parser.add_argument("--mda-dimensions", type=parse_int_list, default=parse_int_list("2,4,6,8,12"))
     parser.add_argument("--full-mda-grid", action="store_true", help="Search every feasible integer row/column dimension on the 112x92 ORL images.")
-    parser.add_argument("--repeats", type=int, default=30)
+    parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--seed", type=int, default=3314)
     parser.add_argument("--max-iter", type=int, default=10)
     parser.add_argument("--tolerance", type=float, default=1e-4)
     parser.add_argument("--paper-epsilon", type=float, default=1e-4, help="Epsilon in Fig. 3; the article does not report its value.")
-    parser.add_argument("--histogram-levels", type=int, default=256, help="Per-image equalization output levels; 64 approximates MATLAB histeq's default.")
-    parser.add_argument("--workers", type=int, default=4, help="Number of concurrent independent MDA/2-2 fits.")
+    parser.add_argument("--histogram-levels", type=int, default=64, help="Per-image equalization output levels; 64 approximates MATLAB histeq's default.")
+    parser.add_argument("--workers", type=int, default=14, help="Concurrent independent fits; 14 was fastest in the latest M3 Max benchmark.")
     parser.add_argument(
         "--mda-stopping",
         choices=("paper_figure", "projection_change", "objective"),
@@ -463,6 +472,9 @@ def main() -> None:
     parser.add_argument("--mda-order", choices=("row_first", "column_first"), default="row_first")
     parser.add_argument("--resume", action="store_true", help="Resume completed splits from a compatible checkpoint.")
     args = parser.parse_args()
+    if args.output_dir is None:
+        timestamp = datetime.now(ZoneInfo("Asia/Hong_Kong")).strftime("%Y%m%d-%H%M%S")
+        args.output_dir = Path("results/runs") / f"{timestamp}-orl-dimension-sweep-{args.projection_normalization}"
     if args.repeats < 1 or args.max_iter < 1 or args.workers < 1:
         parser.error("repeats, max-iter, and workers must be positive")
     if not 2 <= args.histogram_levels <= 256 or args.paper_epsilon <= 0:

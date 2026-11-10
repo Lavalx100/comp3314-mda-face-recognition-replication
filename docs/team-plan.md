@@ -41,7 +41,8 @@ python3 scripts/run_orl_dimension_sweep.py --mda-stopping paper_figure --repeats
   --output-dir results/orl-original-dimension-sweep
 python3 scripts/render_mda_dimension_heatmap.py \
   results/orl-original-dimension-sweep/dimension_summary.csv \
-  results/orl-original-dimension-sweep/mda22_dimension_heatmap.svg
+  results/orl-original-dimension-sweep/mda22_dimension_heatmap.svg \
+  --normalization unit_l2
 ```
 
 Use the same paired-analysis command with the alternate run's `raw_results.csv`. Keep fresh outputs in a new folder; the checked-in `2026-10-28-30-repeat-followup` artifacts are the current dated study.
@@ -50,9 +51,10 @@ Use the same paired-analysis command with the alternate run's `raw_results.csv`.
 
 - [x] Four methods share each 64×64 split; learned transforms use training data only.
 - [x] 30 splits per gallery count under both normalization settings.
-- [x] Original-resolution 112×92 fixed-setting split-level runs complete under both projection normalizations; the 5-repeat dimension sweep is complete.
+- [x] Original-resolution 112×92 fixed-setting split-level runs complete under both projection normalizations; both five-repeat 10,130-pair grids are complete.
 - [x] Raw CSVs, summary CSV/JSON, charts, objective traces, dimension heatmap, and paired comparisons saved.
-- [x] Preliminary three-page report source exists for the earlier 64×64 study; the stale compiled PDF was removed during cleanup. Update the draft with the original-resolution study before submission.
+- [x] Current three-page report source and rendered PDF cover the original-resolution study, complete grids, critical limitations, and validated optimized path.
+- [x] Project website and both full-grid heatmaps updated from the canonical summaries.
 - [ ] Person 2 completes independent algorithm and table audit.
 - [ ] Person 4 integrates final analysis into the 3–4-page submission and presentation.
 - [ ] All four rehearse the talk and Q&A; team reviews the repository before any public release.

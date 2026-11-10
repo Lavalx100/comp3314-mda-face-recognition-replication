@@ -18,7 +18,9 @@ import sys
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 
@@ -185,11 +187,15 @@ def evaluate(args: argparse.Namespace) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, default=Path(".cache/orl-original/att_faces.zip"))
-    parser.add_argument("--output-dir", type=Path, default=Path("results/2026-11-09-nested-gallery-diagnostic"))
+    parser.add_argument("--output-dir", type=Path, default=None,
+                        help="Output directory; defaults to a timestamped results/runs folder.")
     parser.add_argument("--repeats", type=int, default=30)
     parser.add_argument("--seed", type=int, default=3314)
-    parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--workers", type=int, default=14)
     args = parser.parse_args()
+    if args.output_dir is None:
+        timestamp = datetime.now(ZoneInfo("Asia/Hong_Kong")).strftime("%Y%m%d-%H%M%S")
+        args.output_dir = Path("results/runs") / f"{timestamp}-nested-gallery-diagnostic"
     if args.repeats < 2 or args.workers < 1:
         parser.error("repeats must be at least 2 and workers must be positive")
     if not args.archive.is_file():

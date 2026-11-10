@@ -16,7 +16,7 @@ def mix_color(value: float, low: float, high: float) -> str:
     return "#%02x%02x%02x" % rgb
 
 
-def render(summary_path: Path, output_path: Path) -> None:
+def render(summary_path: Path, output_path: Path, normalization: str) -> None:
     with summary_path.open(newline="", encoding="utf-8") as handle:
         rows = [row for row in csv.DictReader(handle) if row["method"] == "MDA/2-2"]
     if not rows:
@@ -32,6 +32,10 @@ def render(summary_path: Path, output_path: Path) -> None:
     scores = [100.0 * float(row["mean_accuracy"]) for row in rows]
     low, high = min(scores), max(scores)
     repeats = max(int(row["repeats"]) for row in rows)
+    normalization_label = {
+        "unit_l2": "unit-L2",
+        "within_scatter": "within-scatter",
+    }[normalization]
 
     width, height = 1320, 1160
     panel_w, panel_h = 630, 510
@@ -43,11 +47,11 @@ def render(summary_path: Path, output_path: Path) -> None:
     panels = [(22, 88), (655, 88), (22, 598), (655, 598)]
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
-        '<title id="title">MDA/2-2 accuracy across row and column dimensions</title>',
-        f'<desc id="desc">Color maps show mean probe accuracy for {len(lookup):,} feasible dimension settings across gallery sizes. Each cell has exact mean and standard deviation in its title tooltip. The outlined cell is the highest probe mean for that gallery size; this selection is optimistic.</desc>',
+        f'<title id="title">MDA/2-2 {normalization_label} accuracy across row and column dimensions</title>',
+        f'<desc id="desc">Color maps show mean probe accuracy for {len(lookup):,} feasible dimension settings across gallery sizes using {normalization_label} projection axes. Each cell has exact mean and standard deviation in its title tooltip. The outlined cell is the highest probe mean for that gallery size; this selection is optimistic.</desc>',
         '<rect width="100%" height="100%" fill="#fffdf8"/>',
         '<text x="32" y="36" font-family="Arial,sans-serif" font-size="24" font-weight="700" fill="#18241f">MDA/2-2 feature-dimension sweep</text>',
-        f'<text x="32" y="59" font-family="Arial,sans-serif" font-size="13" fill="#64716a">Original 112×92 ORL · {repeats} matched splits · within-scatter axes · corrected Fig. 3 stopping rule</text>',
+        f'<text x="32" y="59" font-family="Arial,sans-serif" font-size="13" fill="#64716a">Original 112×92 ORL · {repeats} matched splits · {normalization_label} axes · corrected Fig. 3 stopping rule · canonical direct grid</text>',
     ]
 
     for index, gallery in enumerate(galleries):
@@ -114,8 +118,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("summary", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument(
+        "--normalization",
+        choices=("unit_l2", "within_scatter"),
+        required=True,
+        help="Projection-axis normalization used to generate the input summary.",
+    )
     args = parser.parse_args()
-    render(args.summary, args.output)
+    render(args.summary, args.output, args.normalization)
     print(f"Wrote {args.output.resolve()}")
 
 

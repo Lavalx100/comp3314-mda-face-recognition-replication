@@ -1,0 +1,13 @@
+{
+  "normalization": "within_scatter",
+  "baseline_grid": "results/2026-11-09-paper-proximate-full-grid",
+  "target_count": 17,
+  "prediction_mismatches": 0,
+  "direct_vs_baseline_accuracy_mismatches": 0,
+  "direct_vs_baseline_iteration_mismatches": 0,
+  "max_row_projection_relative_difference": 0.0,
+  "max_col_projection_relative_difference": 0.0,
+  "max_squared_distance_relative_difference": 0.0,
+  "max_objective_absolute_difference": 0.0,
+  "records_csv": "within_scatter_targeted_equivalence.csv"
+}

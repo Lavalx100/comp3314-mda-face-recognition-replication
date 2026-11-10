@@ -17,8 +17,10 @@ import os
 import time
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Iterable
+from zoneinfo import ZoneInfo
 
 # On macOS, NumPy uses Accelerate; set vecLib before loading NumPy because
 # threadpoolctl cannot currently inspect/control that backend.
@@ -136,20 +138,15 @@ def fisher_trace_ratio(features: np.ndarray, labels: np.ndarray) -> float:
     return between_trace / max(within_trace, 1e-12)
 
 
-def leading_generalized_eigenvectors(
+def prepare_generalized_eigensystem(
     between: np.ndarray,
     within: np.ndarray,
-    n_components: int,
     ridge: float = 1e-6,
-    projection_normalization: str = "unit_l2",
-) -> np.ndarray:
-    """Solve Sb v = lambda Sw v with explicit projection-axis scaling."""
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Factor the symmetric, ridge-regularized generalized eigenproblem."""
     between = (between + between.T) * 0.5
     within = (within + within.T) * 0.5
     dimension = within.shape[0]
-    n_components = min(int(n_components), dimension)
-    if n_components < 1:
-        raise ValueError("At least one projection component is required.")
 
     sw_values, sw_vectors = np.linalg.eigh(within)
     scale = max(float(np.trace(within)) / max(dimension, 1), 1e-12)
@@ -161,14 +158,44 @@ def leading_generalized_eigenvectors(
     whitening = sw_vectors * (1.0 / np.sqrt(regularized_values))[None, :]
     whitened_between = whitening.T @ between @ whitening
     values, vectors = np.linalg.eigh((whitened_between + whitened_between.T) * 0.5)
-    order = np.argsort(values)[::-1][:n_components]
-    projection = whitening @ vectors[:, order]
+    order = np.argsort(values)[::-1]
+    return whitening, vectors, order
+
+
+def project_generalized_eigensystem(
+    eigensystem: tuple[np.ndarray, np.ndarray, np.ndarray],
+    n_components: int,
+    projection_normalization: str = "unit_l2",
+) -> np.ndarray:
+    """Return leading axes using the same shape-specific multiply as a direct solve."""
+    whitening, vectors, order = eigensystem
+    dimension = whitening.shape[0]
+    n_components = min(int(n_components), dimension)
+    if n_components < 1:
+        raise ValueError("At least one projection component is required.")
+    # Keep the column slice before this matrix multiply. Multiplying a full
+    # basis and truncating later can change rounding in nearly singular cases.
+    projection = whitening @ vectors[:, order[:n_components]]
     if projection_normalization == "unit_l2":
         norms = np.linalg.norm(projection, axis=0)
         projection /= np.maximum(norms, 1e-12)[None, :]
     elif projection_normalization != "within_scatter":
         raise ValueError(f"Unknown projection normalization: {projection_normalization}")
     return projection
+
+
+def leading_generalized_eigenvectors(
+    between: np.ndarray,
+    within: np.ndarray,
+    n_components: int,
+    ridge: float = 1e-6,
+    projection_normalization: str = "unit_l2",
+) -> np.ndarray:
+    """Solve Sb v = lambda Sw v with explicit projection-axis scaling."""
+    eigensystem = prepare_generalized_eigensystem(between, within, ridge=ridge)
+    return project_generalized_eigensystem(
+        eigensystem, n_components, projection_normalization=projection_normalization
+    )
 
 
 @dataclass(frozen=True)
@@ -396,47 +423,50 @@ def precompute_mda22_first_iteration(
     dimension_pairs: Iterable[tuple[int, int]],
     projection_normalization: str,
     scatter_grouping: ClassGrouping | None = None,
-) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+) -> dict[int, tuple[np.ndarray, tuple[np.ndarray, np.ndarray, np.ndarray]]]:
     """Reuse MDA's first row-then-column update for every feasible dimension pair.
 
-    At identity initialization, the first row update is independent of both
+    At identity initialization, the first row scatter is independent of the
     requested output dimensions. For each row dimension, the following column
-    update is independent of requested column dimension. The returned row basis
-    and full column basis let each pair take the same leading columns as a
-    separate fit, while avoiding those repeated scatter/eigensolver calls.
+    scatter is independent of requested column dimension. Cache each scatter's
+    eigensystem, then form the requested number of axes with the same
+    shape-specific matrix multiply as a direct fit. This avoids repeated
+    scatter/eigensolver work without changing the first-step operation order.
     """
     pairs_by_row: dict[int, list[int]] = defaultdict(list)
     for row_dim, col_dim in dimension_pairs:
         pairs_by_row[row_dim].append(col_dim)
     if not pairs_by_row:
         return {}
+    height, width = train_images.shape[1:]
     grouping = scatter_grouping or make_class_grouping(train_labels)
-    max_row_dim = max(pairs_by_row)
+    # Match the direct solver's identity-initialized contraction exactly.
+    # Skipping this algebraic no-op can change rounding in singular or nearly
+    # singular scatter problems, which may rotate tied generalized eigenvectors
+    # and alter the projection-change stopping iteration.
+    identity_col = np.eye(width, dtype=np.float64)
+    identity_projected = np.einsum(
+        "nhw,wb->nhb", train_images, identity_col, optimize=True
+    )
     row_between, row_within = mode_scatter(
-        train_images, train_labels, mode=0, grouping=grouping
+        identity_projected, train_labels, mode=0, grouping=grouping
     )
-    full_row_basis = leading_generalized_eigenvectors(
-        row_between,
-        row_within,
-        max_row_dim,
-        projection_normalization=projection_normalization,
-    )
-    cache: dict[int, tuple[np.ndarray, np.ndarray]] = {}
+    row_eigensystem = prepare_generalized_eigensystem(row_between, row_within)
+    cache: dict[int, tuple[np.ndarray, tuple[np.ndarray, np.ndarray, np.ndarray]]] = {}
     for row_dim, col_dims in pairs_by_row.items():
-        row_projection = full_row_basis[:, :row_dim]
+        row_projection = project_generalized_eigensystem(
+            row_eigensystem,
+            row_dim,
+            projection_normalization=projection_normalization,
+        )
         partially_projected = np.einsum(
             "ah,nhw->naw", row_projection.T, train_images, optimize=True
         )
         col_between, col_within = mode_scatter(
             partially_projected, train_labels, mode=1, grouping=grouping
         )
-        full_col_basis = leading_generalized_eigenvectors(
-            col_between,
-            col_within,
-            max(col_dims),
-            projection_normalization=projection_normalization,
-        )
-        cache[row_dim] = (row_projection, full_col_basis)
+        col_eigensystem = prepare_generalized_eigensystem(col_between, col_within)
+        cache[row_dim] = (row_projection, col_eigensystem)
     return cache
 
 
@@ -616,6 +646,10 @@ def run(args: argparse.Namespace) -> tuple[list[dict], list[dict], list[dict]]:
 
             for method in METHODS:
                 start = time.perf_counter()
+                # This path fits one fixed MDA/2-2 pair per split, so there is
+                # no cross-dimension first-step work to reuse. The direct path
+                # avoids cache setup; dimension sweeps use the validated cached
+                # eigensystem path in scripts/run_orl_dimension_sweep.py.
                 train_features, test_features, history = method_features(
                     method, x_train, y_train, x_test,
                     mda_dim=args.mda_dim,
@@ -689,7 +723,8 @@ def main() -> None:
         default=Path(".cache/orl-original/att_faces.zip"),
         help="Path to Cambridge's att_faces.zip; kept out of version control.",
     )
-    parser.add_argument("--output-dir", type=Path, default=Path("results"), help="Directory for CSV, JSON, and SVG results.")
+    parser.add_argument("--output-dir", type=Path, default=None,
+                        help="Output directory; defaults to a timestamped results/runs folder.")
     parser.add_argument("--train-per-class", type=parse_sizes, default=parse_sizes("2,3,4,5"))
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--seed", type=int, default=3314)
@@ -702,7 +737,7 @@ def main() -> None:
     parser.add_argument(
         "--mda-stopping-rule",
         choices=("objective", "projection_change", "paper_figure"),
-        default="objective",
+        default="paper_figure",
         help="paper_figure uses the stopping threshold printed in Fig. 3; projection_change uses a stricter tolerance.",
     )
     parser.add_argument(
@@ -720,7 +755,7 @@ def main() -> None:
     parser.add_argument(
         "--histogram-levels",
         type=int,
-        default=256,
+        default=64,
         help="Output intensity levels per image; 64 approximates MATLAB histeq's default.",
     )
     parser.add_argument(
@@ -736,6 +771,12 @@ def main() -> None:
         parser.error("histogram-levels must be between 2 and 256")
     if args.paper_epsilon <= 0:
         parser.error("paper-epsilon must be positive")
+
+    if args.output_dir is None:
+        timestamp = datetime.now(ZoneInfo("Asia/Hong_Kong")).strftime("%Y%m%d-%H%M%S")
+        args.output_dir = Path("results/runs") / (
+            f"{timestamp}-{args.dataset}-{args.projection_normalization}"
+        )
 
     if args.dataset == "olivetti64":
         args.data_home.mkdir(parents=True, exist_ok=True)

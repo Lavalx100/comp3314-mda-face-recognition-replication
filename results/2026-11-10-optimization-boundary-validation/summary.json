@@ -1,0 +1,21 @@
+{
+  "normalization": "unit_l2",
+  "screened_shared_mda22_rows": 30390,
+  "partial_checkpoint_vs_original_accuracy_mismatches": 2,
+  "partial_checkpoint_vs_original_iteration_mismatches": 16,
+  "partial_checkpoint_vs_original_objective_relative_difference_max": 0.007682034126905665,
+  "partial_checkpoint_objective_relative_differences_over_1e-8": 70,
+  "partial_checkpoint_objective_relative_differences_over_1e-7": 17,
+  "targeted_configurations": 17,
+  "objective_screening_relative_tolerance": 1e-07,
+  "prediction_mismatches_after_correction": 0,
+  "accuracy_or_iteration_mismatches_direct_vs_original": 0,
+  "accuracy_or_iteration_mismatches_corrected_cache_vs_direct": 0,
+  "max_row_projection_relative_difference_sign_aligned": 0.0,
+  "max_col_projection_relative_difference_sign_aligned": 0.0,
+  "max_squared_distance_relative_difference": 0.0,
+  "max_objective_abs_difference_direct_vs_cached": 0.0,
+  "max_objective_rel_difference_direct_vs_original": 1.8595486733413909e-07,
+  "partial_differences_csv": "partial_checkpoint_differences.csv",
+  "records_csv": "targeted_equivalence.csv"
+}

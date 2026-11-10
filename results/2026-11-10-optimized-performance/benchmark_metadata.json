@@ -1,0 +1,61 @@
+{
+  "host_platform": "macOS-27.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "source": "scripts/benchmark_mda_efficiency.py",
+  "representative_pairs": [
+    [
+      2,
+      2
+    ],
+    [
+      2,
+      8
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      8,
+      8
+    ],
+    [
+      16,
+      12
+    ],
+    [
+      24,
+      16
+    ],
+    [
+      32,
+      24
+    ],
+    [
+      48,
+      24
+    ],
+    [
+      56,
+      46
+    ],
+    [
+      64,
+      46
+    ],
+    [
+      92,
+      46
+    ],
+    [
+      112,
+      92
+    ]
+  ],
+  "pair_repeats": 5,
+  "normalization": "unit_l2",
+  "gallery_size": 5,
+  "base_seed": 3314,
+  "split_seed": 8314,
+  "note": "Representative configuration benchmark only; no exhaustive grid is run."
+}

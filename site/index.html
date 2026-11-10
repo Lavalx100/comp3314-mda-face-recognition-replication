@@ -270,15 +270,15 @@
         </div>
         <figure class="chart-frame" style="margin-top:28px">
           <img src="../results/2026-11-09-paper-proximate-full-grid-unit-l2/mda22_dimension_heatmap.svg" alt="Four heatmaps showing MDA two-two mean accuracy across all feasible row and column projection dimensions for gallery sizes two to five under unit-L2 scaling">
-          <figcaption>Each cell is the mean of five probe splits across all feasible pairs. The unit-L2 best means are 61.8%, 82.3%, 90.8%, and 94.9%. <a href="../results/2026-11-09-paper-proximate-full-grid-unit-l2/dimension_summary.csv">Download all dimension means ↗</a></figcaption>
+          <figcaption>Canonical unit-L2 full-grid data: each cell is the mean of five probe splits across all feasible pairs. Best means are 61.8%, 82.3%, 90.8%, and 94.9%; these are probe-selected diagnostics. The complete direct-run grid remains canonical. The 17 configurations flagged by the interrupted run matched corrected cached fits under both normalizations. <a href="../results/2026-11-09-paper-proximate-full-grid-unit-l2/dimension_summary.csv">Download unit-L2 means ↗</a> · <a href="../results/2026-11-09-paper-proximate-full-grid/mda22_dimension_heatmap.svg">View the within-scatter heatmap ↗</a> · <a href="../results/2026-11-09-paper-proximate-full-grid/dimension_summary.csv">Download within-scatter means ↗</a></figcaption>
         </figure>
         <div class="takeaway">
           <div class="label">Careful takeaway</div>
           <p>The full unit-L2 grid rises from 61.8% with two gallery images to 82.3% with three. The within-scatter grid instead dips from 62.4% to 57.3%. A separate 30-repeat nested split at fixed 6×6 improves from two to three gallery images under both scalings. This points to a scale, dimension-selection, and split interaction in the probe-selected within-scatter grid, not a general penalty for adding an image. All grid maxima use probe scores to select dimensions and are optimistic. The paper does not give its exact dimension search, split seeds, or axis scaling.</p>
         </div>
         <div class="method-note">
-          <div class="note"><h3>Where the time goes</h3><p>In a 12-fit profile, scatter construction used 44% of fit time, eigendecomposition 18%, and projection/iteration work 38%. Classification used less than 1%.</p></div>
-          <div class="note"><h3>What caching changed</h3><p>Reusing the first MDA updates reached 40.79 fits/s at 16 workers and one BLAS thread, versus 24.17 fits/s in the completed full run. That projects about 1 h 23 min for the full grid; the exhaustive results were preserved and not rerun.</p></div>
+          <div class="note"><h3>Where the time goes</h3><p>In the latest 12-fit profile, scatter construction used 43.6% of fit time, eigendecomposition 20.6%, and projection/iteration work 35.8%. Classification used less than 1%.</p></div>
+          <div class="note"><h3>What caching changed</h3><p>The corrected cache reuses scatter eigensystem factorizations and forms each requested-size projection with the direct solver's operation shape. It measured 47.48 fits/s at 14 workers and one Accelerate thread, versus 40.50 fits/s for the direct path in the same benchmark; peak RSS fell from 1.19 to 0.91 GiB. A 71-minute full-grid runtime is a projection from 60 representative fits, not an observed full run. The complete original tables remain canonical.</p></div>
         </div>
       </div>
     </section>
@@ -287,7 +287,7 @@
       <section class="section" id="comparison">
         <div class="section-head">
           <div><div class="eyebrow">04 / Fair comparison</div><h2>What matches—and what does not.</h2></div>
-          <p>The original-resolution images and stated preprocessing now match the paper's description. The remaining differences are the undocumented random splits and dimension selection, plus implementation details that need independent review.</p>
+          <p>The original-resolution images, class-wise scatter equations, and alternating update order follow the paper. The remaining gap includes settings the article does not fully specify, such as equalization defaults, axis scaling, singular-scatter handling, random splits, and dimension selection.</p>
         </div>
         <div class="compare-wrap">
           <table class="compare">
@@ -295,7 +295,7 @@
             <tbody>
               <tr><td>Images</td><td>Original ORL images at 92 × 112 pixels</td><td>Original 92 × 112 pixel PGM files; historical 64 × 64 results kept separately</td></tr>
               <tr><td>Feature settings</td><td>Best results among tested dimensions; Fisherface/O is dimension-selected</td><td>30-split table uses fixed dimensions; five-split grids search all 10,130 Theorem 2-feasible MDA/2-2 pairs under two axis scalings</td></tr>
-              <tr><td>Evaluation</td><td>Random gallery/probe partitions; exact seeds and full search details are not reported</td><td>30 new matched splits per gallery size; every group score and seed is saved</td></tr>
+              <tr><td>Evaluation</td><td>Random gallery/probe partitions; exact seeds and full search details are not reported</td><td>30 matched fixed-setting splits and five full-grid splits per gallery size; split-level scores and seeds are saved</td></tr>
               <tr><td>Classifier</td><td>Nearest neighbour</td><td>Euclidean 1-nearest-neighbour</td></tr>
             </tbody>
           </table>
@@ -306,7 +306,7 @@
       <section class="section" id="plan">
         <div class="section-head">
           <div><div class="eyebrow">05 / Your assignment</div><h2>Person 3: own the experiment trail.</h2></div>
-          <p>Your job is to make the results runnable, fair, and transparent. The fixed runs and both full dimension grids are done; the paper audit, leakage check, and efficiency benchmarks are recorded. Focus now on team review and final report integration.</p>
+          <p>Your job is to make the results runnable, fair, and transparent. The fixed runs and both full dimension grids are complete; the optimized sweep is now the default, and the full grids remain canonical after targeted direct/cache validation. The report, audit, site, and presentation outline use the same current findings.</p>
         </div>
         <div class="tasks">
           <article class="task-panel primary">
@@ -379,13 +379,17 @@ python3 scripts/run_orl_dimension_sweep.py --full-mda-grid \
           <a class="resource" href="../docs/experiments/2026-10-28-30-repeat-followup.md"><span>Experiment record</span><strong>30-split follow-up ↗</strong></a>
           <a class="resource" href="../docs/experiments/2026-10-28-original-resolution-reproduction.md"><span>Original-resolution study</span><strong>Full run and results ↗</strong></a>
           <a class="resource" href="../docs/experiments/2026-11-09-paper-proximate-reproduction.md"><span>Latest research record</span><strong>Correctness and performance audit ↗</strong></a>
+          <a class="resource" href="../docs/experiments/2026-11-10-optimized-default-and-equivalence.md"><span>Latest implementation record</span><strong>Optimization and targeted equivalence ↗</strong></a>
           <a class="resource" href="../results/2026-11-09-paper-proximate-full-grid-unit-l2/mda22_dimension_heatmap.svg"><span>Dimension sensitivity</span><strong>Full-grid MDA/2-2 heatmap ↗</strong></a>
           <a class="resource" href="../results/2026-11-09-nested-gallery-diagnostic/summary.csv"><span>Gallery-size check</span><strong>Nested 2-vs-3 split results ↗</strong></a>
-          <a class="resource" href="../results/2026-11-09-performance-repeatability/worker_scaling.csv"><span>Performance evidence</span><strong>Worker and BLAS benchmark ↗</strong></a>
+          <a class="resource" href="../results/2026-11-10-optimized-performance/worker_scaling.csv"><span>Performance evidence</span><strong>Latest worker and BLAS benchmark ↗</strong></a>
+          <a class="resource" href="../results/2026-11-10-optimization-boundary-validation/summary.json"><span>Cache correctness</span><strong>Unit-L2 targeted validation ↗</strong></a>
+          <a class="resource" href="../results/2026-11-10-optimization-boundary-validation/within_scatter_summary.json"><span>Cache correctness</span><strong>Within-scatter validation ↗</strong></a>
           <a class="resource" href="../hpc/README.md"><span>Optional computing</span><strong>HKU HPC setup ↗</strong></a>
           <a class="resource" href="../src/run_experiment.py"><span>Implementation</span><strong>Run the four methods ↗</strong></a>
           <a class="resource" href="../docs/protocol.md"><span>Reproducibility</span><strong>Data and evaluation protocol ↗</strong></a>
           <a class="resource" href="../report/main.tex"><span>Course deliverable</span><strong>Editable report source ↗</strong></a>
+          <a class="resource" href="../output/pdf/COMP3314_Group27_MDA_Reproduction.pdf"><span>Course deliverable</span><strong>Rendered report PDF ↗</strong></a>
           <a class="resource" href="https://github.com/Lavalx100/comp3314-mda-face-recognition-replication"><span>Version history</span><strong>Private GitHub repository ↗</strong></a>
         </div>
       </section>
