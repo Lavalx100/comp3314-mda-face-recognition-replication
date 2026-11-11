@@ -1,41 +1,52 @@
-# 9-minute presentation outline + 3-minute Q&A
+# COMP3314 Group 27 — final presentation run of show
 
-Use 8–9 concise slides. The story is the paper's idea, what the group actually tested, and what the evidence can support.
+The deck has 12 slides: 10 content slides, a cover, and a references/Q&A slide. The planned talk is 8:30, leaving about 30 seconds for speaker handoffs and pacing within the 9-minute limit. Allow 3 minutes for Q&A.
 
-| Time | Slide | Main point and visual |
-|---:|---|---|
-| 0:00–0:45 | Question | Can keeping an image as a matrix help supervised face recognition? Show a face matrix beside a flattened vector. |
-| 0:45–1:35 | Paper idea | MDA learns row and column projections; cite Yan et al. and state the small-sample motivation. |
-| 1:35–2:35 | How MDA works | DTC between/within-class intuition, generalized eigenproblem, alternating row/column updates. Use the method-flow diagram in the report. |
-| 2:35–3:20 | Course connections | PCA, LDA, generalized eigenvectors, and Euclidean nearest-neighbour classification. |
-| 3:20–4:15 | Our protocol | Original 112×92 ORL images, 40 people, gallery sizes 2–5, gallery-only fitting, 30 matched fixed-setting splits. State the 64-level equalization assumption. |
-| 4:15–5:20 | Fixed-setting results | Use the 30-split accuracy chart and table. MDA/2-1 leads in this implementation; MDA/2-2 depends strongly on axis scaling. |
-| 5:20–6:20 | Full dimension search | Show the unit-L2 heatmap and the within-scatter comparison. Explain that the best dimensions were selected on the same probe scores, so maxima are optimistic. |
-| 6:20–7:25 | Critical analysis | Discuss the gap to the paper, undocumented settings, and the gallery-size-3 dip. The dip occurs only in the selected within-scatter grid; a fixed nested 2-vs-3 diagnostic improves under both scalings. |
-| 7:25–8:30 | What we learned | Explain that implementation speedups must preserve numerics: cache eigensystem factorizations, keep dimension-shaped projections, and validate the sensitive cases. Mention full grids remain canonical. |
-| 8:30–9:00 | Takeaway | MDA's tensor structure is useful to study, but this implementation does not reproduce the paper's best scores; make the assumptions and selection bias explicit. |
+- [Editable PowerPoint](COMP3314_Group27_MDA_Final_Presentation_Natural_Final_2026-11-11.pptx)
+- [PDF version](../output/pdf/COMP3314_Group27_MDA_Final_Presentation_Natural_Final_2026-11-11.pdf)
 
-## Visual and result files
+| Time | Slide | Speaker | Purpose |
+|---|---:|---|---|
+| 0:00–0:15 | 1 | Person 1 | State the question and introduce the paper |
+| 0:15–0:55 | 2 | Person 1 | Explain vectorization and connect to PCA/LDA |
+| 0:55–1:45 | 3 | Person 2 | Show the two-mode tensor projection |
+| 1:45–2:30 | 4 | Person 2 | Explain the discriminant tensor criterion |
+| 2:30–3:15 | 5 | Person 2 | Explain the alternating generalized eigenproblems |
+| 3:15–4:00 | 6 | Person 3 | Describe original ORL data and matched protocol |
+| 4:00–5:05 | 7 | Person 3 | Present fixed-setting results and scaling sensitivity |
+| 5:05–6:00 | 8 | Person 4 | Compare the full-grid peaks with the paper, with the selection caveat |
+| 6:00–6:45 | 9 | Person 4 | Resolve the gallery-size-three dip using nested splits |
+| 6:45–7:35 | 10 | Person 4 | Discuss assumptions, limits, and a better next evaluation |
+| 7:35–8:20 | 11 | Person 3 | Report the optimization and targeted equivalence checks |
+| 8:20–8:30 | 12 | All | Leave references visible before Q&A |
 
-- Fixed-setting chart: results/2026-11-09-paper-proximate-fixed/unit_l2/accuracy_vs_training_size.svg
-- Unit-L2 full-grid heatmap: results/2026-11-09-paper-proximate-full-grid-unit-l2/mda22_dimension_heatmap.svg
-- Within-scatter full-grid heatmap: results/2026-11-09-paper-proximate-full-grid/mda22_dimension_heatmap.svg
-- Within-scatter grid summary: results/2026-11-09-paper-proximate-full-grid/best_by_gallery.csv
-- Current report with the fixed-setting and full-grid tables: output/pdf/COMP3314_Group27_MDA_Reproduction.pdf
-- Correctness, leakage, and implementation audit: docs/experiments/2026-11-09-paper-proximate-reproduction.md
-- Corrected cache validation under both axis normalizations: results/2026-11-10-optimization-boundary-validation/summary.json and within_scatter_summary.json
+## Handoffs
 
-Label every result as either reported by Yan et al. or produced by Group 27. Cite paper figures and reproduce no paper visual without attribution.
+- Person 1 to Person 2: “MDA keeps those axes. Here is what its feature looks like.”
+- Person 2 to Person 3: “The method is clear; now we’ll show the exact data split we tested.”
+- Person 3 to Person 4: “Those are fixed-dimension results. The full search raises a selection question.”
+- Person 4 to Person 3: “With that limitation clear, we’ll close with how we validated the faster implementation.”
+
+## Sources checked
+
+- Original paper: Yan et al. (2007), *IEEE Transactions on Image Processing*, 16(1), 212–220.
+- Final group report: report/main.tex
+- Paper-proximate protocol and leakage audit: docs/experiments/2026-11-09-paper-proximate-reproduction.md
+- Optimized default and targeted equivalence: docs/experiments/2026-11-10-optimized-default-and-equivalence.md
+- Fixed-setting data: results/2026-11-09-paper-proximate-fixed/{unit_l2,within_scatter}/summary.csv
+- Full-grid values: results/2026-11-09-paper-proximate-full-grid*/best_by_gallery.csv
+- Nested gallery diagnostic: results/2026-11-09-nested-gallery-diagnostic/summary.csv
+- Performance benchmark: results/2026-11-10-optimized-performance/
+- Official ORL database details: AT&T Laboratories Cambridge.
+
+The paper’s Table I values are identified as the authors’ reported best scores. All other results are identified as Group 27 results. The full-grid maxima use probe scores for dimension selection, so they are optimistic and are not unbiased test estimates.
 
 ## Q&A rehearsal
 
-- **Did test probes affect the learned projections?** No. Projections are fit on gallery images. However, the full-grid dimension maxima are selected using probe accuracy, so those selected values are optimistic.
-- **Why do the results differ from the paper?** The article does not fully specify preprocessing defaults, scaling, singular-scatter handling, random splits, or dimension selection. Our choices are documented, but the numerical gap remains.
-- **Why does gallery size 3 look worse than 2 in one plot?** Only the probe-selected within-scatter grid shows that dip. Unit-L2 and the fixed-dimension nested comparison improve from 2 to 3.
-- **Is this an exact reproduction?** No. It is a paper-proximate study using original-resolution ORL and the stated MDA update structure; the published run details are insufficient to match Table I exactly.
-- **Why keep the full tables from the direct implementation?** They are complete. The corrected optimized path matched direct outputs on all 17 configurations flagged by the partial comparison under both axis normalizations, so recomputing every fit would not improve the evidence.
-- **What does the optimization change?** It reuses repeated eigensystem factorizations and was faster on the M3 Max benchmark. It preserves the requested projection shape and was checked against direct fits.
-
-## Speaker handoff
-
-Assign slide owners during rehearsal, but have everyone practice the Q&A. Keep slide text short, use the linked charts, and make the probe-selection limitation visible near the full-grid results.
+- **Did probe images train the projections?** No. Projection fitting uses gallery images. Probe accuracy was reused to select the full-grid dimensions, so those selected maxima are optimistic.
+- **Why does the within-scatter grid dip at gallery size three?** That dip appears in the selected full-grid values. With dimensions fixed at 6×6 on 30 nested splits, adding the third image improves accuracy under both scalings.
+- **Is this an exact reproduction?** No. The article does not specify split seeds, all preprocessing defaults, eigenvector scaling, singular-scatter handling, or the complete dimension-selection protocol.
+- **Why do the paper and group scores differ?** The published settings are incomplete, and the group’s fixed and grid-selected results use different selection protocols. The displayed values should not be treated as a matched comparison.
+- **What did the optimized implementation change?** It reuses class grouping and eigensystem factorizations while forming each requested-size projection with the direct operation shape. The corrected cache matched the direct fits on the 17 flagged settings under both normalizations.
+- **Did you rerun the complete grid with the optimized code?** No. The complete direct-run grids remain canonical; the optimized path is the default for future sweeps.
+- **What would improve the evaluation?** Select dimensions using training-only validation, then evaluate once on an untouched outer test split and a more varied dataset.

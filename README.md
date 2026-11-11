@@ -97,7 +97,8 @@ docs/experiments/          Dated experiment records and handoff notes
 docs/PROGRESS.md           Status, completed work, and next steps
 docs/CHANGELOG.md          Human-readable project change history
 report/main.tex            Current original-resolution study report source
-slides/                    Nine-minute presentation outline and Q&A prep
+slides/                    Editable final presentation, run-of-show outline, and Q&A prep
+output/pdf/                Presentation PDF and rendered research report
 site/index.html            Local research overview, plan, results, and team roles
 hpc/                       Optional HKU HPC2021 CPU SLURM setup (not submitted)
 ```
