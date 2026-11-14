@@ -2,8 +2,10 @@
 
 The deck has 12 slides: 10 content slides, a cover, and a references/Q&A slide. The planned talk is 8:30, leaving about 30 seconds for speaker handoffs and pacing within the 9-minute limit. Allow 3 minutes for Q&A.
 
-- [Editable PowerPoint](COMP3314_Group27_MDA_Final_Presentation_Typeset_2026-11-11.pptx)
-- [PDF version](../output/pdf/COMP3314_Group27_MDA_Final_Presentation_Typeset_2026-11-11.pdf)
+- [Editable PowerPoint](Group27_MDA_Final_Presentation.pptx)
+- [PDF version](../output/pdf/Group27_MDA_Final_Presentation.pdf)
+
+The submission copy contains no embedded slide comments or speaker notes; this run of show remains available separately for the presenters.
 
 | Time | Slide | Speaker | Purpose |
 |---|---:|---|---|

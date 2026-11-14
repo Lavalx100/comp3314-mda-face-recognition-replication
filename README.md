@@ -4,9 +4,9 @@ This is the working research repository for COMP3314 Group 27's study of Yan et 
 
 **Current status (2026-11-10):** the corrected fixed-setting runs and both full 10,130-pair original-resolution grids are complete and remain the canonical experimental datasets. The optimized implementation is now the default for dimension sweeps. It reuses eigensystem factorizations while preserving requested-dimension projection operations. All 17 configurations flagged by the interrupted run were rechecked under both axis normalizations; corrected cached and direct fits matched on predictions, accuracy, iteration counts, projections, distances, and objectives. The redundant exhaustive rerun was stopped after three completed diagnostic splits, and its checkpoints are preserved separately. See the [correctness and performance audit](docs/experiments/2026-11-09-paper-proximate-reproduction.md), [optimization validation record](docs/experiments/2026-11-10-optimized-default-and-equivalence.md), [progress](docs/PROGRESS.md), and [optional HKU HPC setup](hpc/README.md).
 
-**Final presentation (2026-11-11):** [editable PowerPoint](slides/COMP3314_Group27_MDA_Final_Presentation_Typeset_2026-11-11.pptx) · [PDF](output/pdf/COMP3314_Group27_MDA_Final_Presentation_Typeset_2026-11-11.pdf). Earlier presentation files are kept under `archive/presentation/`.
+**Final presentation (2026-11-14):** [editable PowerPoint](slides/Group27_MDA_Final_Presentation.pptx) · [PDF](output/pdf/Group27_MDA_Final_Presentation.pdf). The submission copy has no slide comments or speaker notes.
 
-**GitHub:** [private working repository](https://github.com/Lavalx100/comp3314-mda-face-recognition-replication) · Review attribution and course policy as a group before making it public.
+**GitHub:** [public working repository](https://github.com/Lavalx100/comp3314-mda-face-recognition-replication).
 
 ## Research question
 
