@@ -1,130 +1,92 @@
-\documentclass[10pt]{article}
-\usepackage[a4paper,margin=14.5mm,headheight=20pt,headsep=3mm,footskip=19pt]{geometry}
-\usepackage{fontspec}
-\setmainfont{Palatino}
-\setsansfont{Avenir Next}
-\setmonofont{Menlo}
-\newfontfamily\displayfont{Baskerville}
+\documentclass{article}
+\PassOptionsToPackage{numbers,compress}{natbib}
+\usepackage[preprint]{neurips_2026}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\hypersetup{hidelinks}
+\hypersetup{
+  pdftitle={COMP3314 Group 27: MDA Face Recognition Report},
+  pdfauthor={Jad Khiami; Lai Hing Kwan; Lam Cheung Lam; Lan Yuhang},
+  pdfsubject={Paper-proximate reproduction of MDA on the ORL face database}
+}
+\usepackage{booktabs}
 \usepackage{amsmath,amssymb}
-\usepackage{booktabs,tabularx,array,multicol}
+\usepackage{microtype}
+\usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
-\usepackage[most]{tcolorbox}
-\tcbuselibrary{skins,breakable}
-\usepackage{enumitem}
-\usepackage{titlesec}
-\usepackage{fancyhdr}
-\usepackage{microtype}
 \usepackage{float}
-\usepackage[hidelinks]{hyperref}
 
-\definecolor{Ink}{HTML}{202A30}
-\definecolor{Muted}{HTML}{63737A}
-\definecolor{Teal}{HTML}{247A73}
-\definecolor{Rust}{HTML}{C25132}
-\definecolor{Blue}{HTML}{557A92}
-\definecolor{Purple}{HTML}{7968A3}
-\definecolor{Gold}{HTML}{C58A2A}
-\definecolor{Pale}{HTML}{F1F5F4}
-\definecolor{PaleWarm}{HTML}{FBF3EF}
-\definecolor{Rule}{HTML}{D9E1DF}
-
-\hypersetup{pdftitle={COMP3314 Group 27 — MDA Face Recognition Final Report},pdfauthor={COMP3314 Group 27},pdfsubject={Paper-proximate reproduction of Multilinear Discriminant Analysis on ORL faces}}
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\sffamily\small\color{Muted}COMP3314 \; / \; GROUP 27}
-\fancyhead[R]{\sffamily\small\color{Muted}MDA FACE RECOGNITION}
-\fancyfoot[C]{\sffamily\small\color{Muted}\thepage\; / \;4}
-\renewcommand{\headrulewidth}{0.45pt}
-\renewcommand{\headrule}{\hbox to\headwidth{\color{Rule}\leaders\hrule height \headrulewidth\hfill}}
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{0.42em}
-\setlength{\emergencystretch}{2em}
-\setlist[itemize]{leftmargin=1.2em,itemsep=0.15em,topsep=0.15em}
-\titleformat{\section}{\sffamily\large\bfseries\color{Teal}}{}{0pt}{}
-\titlespacing*{\section}{0pt}{0.55em}{0.25em}
-\newtcolorbox{softbox}[1][]{colback=Pale,colframe=Pale,boxrule=0pt,arc=2mm,left=2.4mm,right=2.4mm,top=1.7mm,bottom=1.7mm,#1}
-\newtcolorbox{warmbox}[1][]{colback=PaleWarm,colframe=PaleWarm,boxrule=0pt,arc=2mm,left=2.4mm,right=2.4mm,top=1.7mm,bottom=1.7mm,#1}
-\newtcolorbox{videobox}{colback=Pale,colframe=Pale,boxrule=0pt,arc=2mm,borderline west={2pt}{0pt}{Teal},left=2.4mm,right=2.4mm,top=1.4mm,bottom=1.4mm}
+\definecolor{MDAteal}{HTML}{247A73}
+\definecolor{MDApale}{HTML}{EFF5F3}
+\definecolor{MDArust}{HTML}{C25132}
+\definecolor{MDAblue}{HTML}{557A92}
+\definecolor{MDAgold}{HTML}{C58A2A}
 \tikzset{
-  stepbox/.style={draw=Rule,fill=Pale,rounded corners=2mm,align=center,text=Ink,font=\sffamily\small,minimum height=13mm,text width=34mm,inner sep=2mm},
-  arrow/.style={-{Stealth[length=2mm]},draw=Muted,line width=0.8pt},
-  dot/.style={circle,fill=Teal,draw=none,minimum size=2.5mm,inner sep=0pt}
+  flowbox/.style={draw=MDAteal!45,fill=MDApale,rounded corners=2pt,
+    align=center,font=\small,text width=25mm,minimum height=13mm,inner sep=2mm},
+  flowarrow/.style={-{Stealth[length=2mm]},draw=black!55,line width=.7pt}
 }
-\newcommand{\smallcaps}[1]{{\sffamily\bfseries\color{Teal}\footnotesize #1}}
-\newcommand{\pp}{\,\text{pp}}
+
+\title{Multilinear Discriminant Analysis for Face Recognition:\\A Paper-Proximate ORL Study}
+\author{Jad Khiami \quad Lai Hing Kwan \quad Lam Cheung Lam \quad Lan Yuhang\\
+The University of Hong Kong\\
+COMP3314 Group 27}
 
 \begin{document}
-\thispagestyle{fancy}
+\maketitle
 
-\begin{center}
-{\sffamily\bfseries\color{Teal}\small COMP3314 \; | \; GROUP 27 \; | \; FALL 2026}\par
-\vspace{2mm}
-{\displayfont\fontsize{25}{29}\selectfont\color{Ink}Multilinear Discriminant Analysis\par for Face Recognition}\par
-\vspace{1.5mm}
-{\sffamily\small\color{Muted}A paper-proximate study on original-resolution ORL faces}\par
-\vspace{1mm}
-{\sffamily\footnotesize Jad Khiami \; · \; Lai Hing Kwan \; · \; Lam Cheung Lam \; · \; Lan Yuhang}
-\end{center}
+\begin{abstract}
+Yan et al. introduced Multilinear Discriminant Analysis (MDA), which learns identity-discriminating projections while retaining an image's row and column structure. We implemented MDA on the original 112$\times$92 ORL faces and compared it with Eigenfaces PCA, Fisherfaces LDA, and two MDA variants. Across 30 matched fixed-setting splits, MDA/2-1 led at every gallery size; MDA/2-2 was sensitive to projection-axis normalization. Full dimension-grid maxima remain below the paper's reported scores and are optimistic because probe scores selected the dimensions. We document unspecified implementation choices, preserve the complete direct-run grids, and validate a corrected cached implementation for future sweeps.
+\end{abstract}
 
-\begin{softbox}
-\smallcaps{Abstract}\par
-Yan et al. introduced Multilinear Discriminant Analysis (MDA), which learns identity-discriminating projections while retaining the row and column structure of an image. We implemented the core method on the original 112\,$\times$\,92 ORL faces and compared it with PCA, Fisherfaces, and two MDA variants. In the fixed-setting study, MDA/2-1 led at every gallery size, while MDA/2-2 was highly sensitive to projection-axis normalization. Our full dimension grids remain below the paper's reported best scores and are optimistic because probe scores selected the dimensions. Since several paper settings are unspecified, we report this as a paper-proximate reproduction, document our choices, and preserve the complete direct-run data. A corrected cached implementation is now the default for future sweeps and was checked against flagged direct fits.
-\end{softbox}
-
-\section*{1 \; The problem and the MDA idea}
-Face recognition asks: given a new face image, which known person's images does it resemble? Conventional Eigenfaces PCA and Fisherfaces LDA usually flatten an image into one long vector. The pixel values remain, but the learner no longer treats rows and columns as separate modes. MDA keeps a face as a matrix and learns projections along those modes, connecting the project to supervised dimensionality reduction and generalized eigenproblems.
+\section{Problem and method}
+Vector-based PCA and LDA flatten an image into one long feature vector. MDA instead keeps a face as a matrix and learns discriminative projections along its two image modes \citep{Yan2007MDA}. For a face matrix $X\in\mathbb{R}^{h\times w}$, the projected feature is $Z=U^\top X V$. This connects MDA to supervised dimensionality reduction and the generalized eigenproblems covered in COMP3314.
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=5mm]
-  \node[stepbox] (x) {ORL face matrix $X$\\$112\times92$ pixels};
-  \node[stepbox,right=of x] (learn) {Learn row and column axes\\from labelled gallery faces};
-  \node[stepbox,right=of learn] (z) {Compact feature\\$Z=U^{\top}XV$};
-  \node[stepbox,right=of z] (knn) {Euclidean 1-NN\\predict identity};
-  \draw[arrow] (x)--(learn);
-  \draw[arrow] (learn)--(z);
-  \draw[arrow] (z)--(knn);
+\begin{tikzpicture}[node distance=3mm]
+  \node[flowbox] (x) {ORL face matrix\\$X$: $112\times92$};
+  \node[flowbox,right=of x] (gallery) {Labelled gallery\\images};
+  \node[flowbox,right=of gallery] (mda) {Learn row and\\column axes $U,V$};
+  \node[flowbox,right=of mda] (knn) {Project probe;\\Euclidean 1-NN};
+  \draw[flowarrow] (x)--(gallery);
+  \draw[flowarrow] (gallery)--(mda);
+  \draw[flowarrow] (mda)--(knn);
 \end{tikzpicture}
-\caption{Recognition pipeline. The learned projections are fitted on gallery images; probes are transformed only after fitting.}
+\caption{Recognition pipeline. MDA is fitted on gallery faces; held-out probes are projected afterward and assigned the nearest gallery identity.}
+\label{fig:pipeline}
 \end{figure}
 
-The discriminant tensor criterion (DTC) extends Fisher's between-class/within-class idea to projected matrices:
-\[
-J(U,V)=\frac{\displaystyle\sum_c n_c\left\|U^{\top}(\bar X_c-\bar X)V\right\|_F^2}
-{\displaystyle\sum_c\sum_{i:y_i=c}\left\|U^{\top}(X_i-\bar X_c)V\right\|_F^2}.
-\]
-The numerator rewards separation between identity means; the denominator penalizes spread among images of the same identity. With one projection fixed, the other is updated by solving a generalized eigenproblem. MDA/2-1 learns one mode (the paper's 2-D LDA special case); MDA/2-2 alternates row and column updates. The final classifier is Euclidean one-nearest neighbour (1-NN), not part of the DTC optimization.
+MDA extends Fisher's between-class versus within-class criterion to projected matrices:
+\begin{equation}
+J(U,V)=
+\frac{\sum_c n_c\left\|U^\top(\bar X_c-\bar X)V\right\|_F^2}
+{\sum_c\sum_{i:y_i=c}\left\|U^\top(X_i-\bar X_c)V\right\|_F^2}.
+\label{eq:dtc}
+\end{equation}
+Here $\bar X_c$ and $\bar X$ are the gallery class and overall means. The numerator rewards separation between identities; the denominator penalizes variation among images of one identity. With one mode fixed, the other is updated by solving a generalized eigenproblem. MDA/2-1 learns one mode; MDA/2-2 alternates row and column updates. Euclidean one-nearest-neighbour (1-NN) then classifies the projected features. Thus axis scaling matters to the final distance even when the subspace is unchanged.
 
-\begin{warmbox}
-\smallcaps{Intuition}\quad Different people should land far apart; photos of the same person should stay compact. In our fixed MDA/2-2 setting, the learned 6\,$\times$\,6 feature has 36 values instead of the original 10,304 pixels.
-\end{warmbox}
+\noindent\textbf{Project video.} A short animated walkthrough is available at \href{https://jadkhiami.me/videocomp3314}{\texttt{jadkhiami.me/videocomp3314}}.
 
-\begin{videobox}
-\smallcaps{Project video}\par
-\href{https://jadkhiami.me/videocomp3314}{\sffamily\bfseries\color{Teal}Watch the 30-second MDA system animation on JadKhiami.me}\par
-{\sffamily\small\color{Muted}A landscape walk-through: gallery/probe split, projections, recognition, and results.}
-\end{videobox}
+\section{Data and experimental protocol}
+We used the original Cambridge ORL database \citep{ORL}: 400 grayscale faces from 40 identities, ten images per person, each with 112 rows and 92 columns. Images were equalized independently. For each identity, 2, 3, 4, or 5 images formed the labelled \emph{gallery}; the remaining images were held-out \emph{probes}. All methods shared deterministic splits, and projection fitting used gallery images only.
 
-\newpage
-\section*{2 \; Data and experimental protocol}
-We used the original Cambridge ORL database: 400 grayscale images of 40 identities, ten images per person, at 112 rows by 92 columns. Images were equalized independently. For each identity, 2, 3, 4, or 5 images formed the labelled \emph{gallery}; the remaining images were held-out \emph{probes}. Every method used the same deterministic split, and projections were fitted on gallery images only.
+The fixed-setting comparison averages 30 matched splits per gallery size: PCA with 36 components; Fisherfaces with full $N-C$ PCA pre-reduction and up to 36 LDA components; MDA/2-1 with six row components; and MDA/2-2 with $6\times6$ components. The full MDA/2-2 search evaluated all 10,130 feasible integer dimension pairs using five repeats per gallery size.
 
-\begin{softbox}[left=1.5mm,right=1.5mm,top=1.2mm,bottom=1.2mm]
-\begin{tabularx}{\linewidth}{>{\centering\arraybackslash}X>{\centering\arraybackslash}X>{\centering\arraybackslash}X>{\centering\arraybackslash}X}
-{\displayfont\Large\color{Teal}400} & {\displayfont\Large\color{Teal}40} & {\displayfont\Large\color{Teal}10} & {\displayfont\Large\color{Rust}112\,$\times$\,92}\\
-grayscale faces & identities & images per identity & pixels (rows $\times$ columns)
-\end{tabularx}
-\end{softbox}
+The paper does not specify every implementation detail. Our explicit choices were 64-level per-image histogram equalization, $\epsilon=10^{-4}$ with a 10-iteration cap, and a relative $10^{-6}$ ridge for singular within-class scatter. The split seed was $3314+1000g+r$, where $g$ is gallery size and $r$ is the zero-based repeat index. These are documented assumptions, not claims about the authors' code.
 
-The fixed-setting comparison averages 30 matched splits per gallery size: PCA with 36 components; Fisherfaces with full $N-C$ PCA pre-reduction and up to 36 LDA components; MDA/2-1 with six row components; and MDA/2-2 with 6\,$\times$\,6 components. All methods use Euclidean 1-NN. The dimension search uses five repeats. Choices needed because the paper is incomplete are: 64-level per-image histogram equalization, $\epsilon=10^{-4}$ with a 10-iteration cap, and a relative $10^{-6}$ ridge for singular within-class scatter. The seed rule is $3314+1000g+r$ for gallery size $g$ and repeat index $r$.
-
-\smallcaps{Fixed-setting probe accuracy}\quad Mean $\pm$ sample standard deviation over 30 matched splits (percent).
-\begin{center}
-\scriptsize
-\setlength{\tabcolsep}{4.1pt}
+\section{Results and critical analysis}
+\begin{table}[H]
+\centering
+\small
+\caption{Fixed-setting probe accuracy, mean $\pm$ sample SD over 30 matched splits (percent).}
+\label{tab:fixed}
 \begin{tabular}{lrrrr}
 \toprule
 Method & 2 gallery & 3 & 4 & 5\\
@@ -136,133 +98,60 @@ MDA/2-2, unit-L2 & $34.8\pm5.3$ & $52.6\pm5.6$ & $75.8\pm3.6$ & $87.5\pm2.8$\\
 MDA/2-2, within-scatter & $5.4\pm1.9$ & $23.9\pm10.3$ & $64.0\pm6.0$ & $81.4\pm3.8$\\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
-\begin{figure}[H]
+MDA/2-1 was strongest in every fixed setting. MDA/2-2 varied sharply with axis normalization, showing that the learned feature metric, and not only the retained subspace, affects nearest-neighbour classification.
+
+\begin{table}[H]
 \centering
-\begin{tikzpicture}
-\begin{axis}[
-  width=0.93\linewidth,height=5.1cm,
-  xmin=1.8,xmax=5.2,ymin=0,ymax=100,
-  xtick={2,3,4,5},ytick={0,20,40,60,80,100},
-  xlabel={Gallery images per identity},ylabel={Probe accuracy (\%)},
-  tick label style={font=\scriptsize,color=Muted},
-  label style={font=\small,color=Ink},
-  axis line style={color=Muted},
-  grid=major,major grid style={draw=Rule,line width=0.45pt},
-  legend style={draw=none,fill=none,font=\scriptsize,at={(0.5,-0.27)},anchor=north,legend columns=3,column sep=5pt},
-  clip=false
-]
-\addplot+[color=Blue,mark=*,line width=1pt,error bars/.cd,y dir=both,y explicit] coordinates {(2,73.9) +- (0,2.5) (3,84.1) +- (0,1.8) (4,88.2) +- (0,3.0) (5,91.6) +- (0,2.0)};\addlegendentry{PCA}
-\addplot+[color=Purple,mark=square*,line width=1pt,error bars/.cd,y dir=both,y explicit] coordinates {(2,73.1) +- (0,2.8) (3,84.9) +- (0,2.9) (4,88.0) +- (0,2.4) (5,90.4) +- (0,2.2)};\addlegendentry{Fisherfaces}
-\addplot+[color=Teal,mark=triangle*,line width=1.15pt,error bars/.cd,y dir=both,y explicit] coordinates {(2,81.4) +- (0,3.0) (3,89.9) +- (0,2.2) (4,92.0) +- (0,2.2) (5,94.7) +- (0,1.7)};\addlegendentry{MDA/2-1}
-\addplot+[color=Rust,mark=*,line width=1pt,error bars/.cd,y dir=both,y explicit] coordinates {(2,34.8) +- (0,5.3) (3,52.6) +- (0,5.6) (4,75.8) +- (0,3.6) (5,87.5) +- (0,2.8)};\addlegendentry{MDA/2-2 unit-L2}
-\addplot+[color=Gold,mark=square*,line width=1pt,error bars/.cd,y dir=both,y explicit] coordinates {(2,5.4) +- (0,1.9) (3,23.9) +- (0,10.3) (4,64.0) +- (0,6.0) (5,81.4) +- (0,3.8)};\addlegendentry{MDA/2-2 within-scatter}
-\end{axis}
-\end{tikzpicture}
-\caption{Fixed-setting results. Whiskers show sample standard deviation; MDA/2-1 is strongest at every gallery size.}
-\end{figure}
-
-\newpage
-\section*{3 \; Full-grid evidence and critical interpretation}
-For MDA/2-2, we evaluated all 10,130 feasible integer row/column dimension pairs, with five splits at each gallery size. That is 202,600 fits per normalization. The authors report their best MDA/2-2 Table I values across gallery sizes 2--5 as 90.1\%, 95.0\%, 98.3\%, and 99.0\% \cite{Yan2007MDA}.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-  width=0.89\linewidth,height=5.1cm,
-  xmin=1.8,xmax=5.2,ymin=45,ymax=101,
-  xtick={2,3,4,5},ytick={50,60,70,80,90,100},
-  xlabel={Gallery images per identity},ylabel={Selected mean accuracy (\%)},
-  tick label style={font=\scriptsize,color=Muted},label style={font=\small,color=Ink},
-  axis line style={color=Muted},grid=major,major grid style={draw=Rule,line width=0.45pt},
-  legend style={draw=none,fill=none,font=\scriptsize,at={(0.5,-0.27)},anchor=north,legend columns=3,column sep=7pt},clip=false
-]
-\addplot+[color=Ink,mark=diamond*,line width=1.2pt,densely dashed] coordinates {(2,90.1)(3,95.0)(4,98.3)(5,99.0)};\addlegendentry{Paper Table I}
-\addplot+[color=Rust,mark=*,line width=1.2pt] coordinates {(2,61.81)(3,82.29)(4,90.75)(5,94.90)};\addlegendentry{Group, unit-L2 grid max}
-\addplot+[color=Gold,mark=square*,line width=1.2pt] coordinates {(2,62.44)(3,57.29)(4,77.92)(5,88.60)};\addlegendentry{Group, within-scatter grid max}
-\end{axis}
-\end{tikzpicture}
-\caption{The group points are five-repeat dimension-search maxima. They are not unbiased test estimates and the paper's selection protocol is not fully reported.}
-\end{figure}
-
-The paper and group values are not a like-for-like comparison: the paper reports its best scores over dimensions, while our full-grid maxima use our own split and implementation choices. More importantly, our maximum dimension pair was selected using the same probe scores used to report that maximum. Projections were gallery-only, but this dimension-selection step reuses probe labels and makes selected peaks optimistic. A fairer estimate would choose dimensions using training-only validation and evaluate once on a separate outer test set.
-
-\begin{softbox}
-\smallcaps{The gallery-size-three dip}\quad The within-scatter grid maximum drops from 62.44\% at two gallery images to 57.29\% at three; the unit-L2 grid does not. In a separate 30-split nested-gallery diagnostic with dimension fixed at 6\,$\times$\,6, a third gallery image improves unit-L2 from 34.57\% to 53.05\% and within-scatter from 5.47\% to 26.70\%. The grid dip is therefore specific to the probe-selected within-scatter search, not evidence that more gallery images generally hurt.
-\end{softbox}
-
-\smallcaps{Strengths, limitations, and next step}\par\smallskip
-\footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X@{\hspace{4mm}}>{\raggedright\arraybackslash}X@{\hspace{4mm}}>{\raggedright\arraybackslash}X@{}}
-\textbf{Strengths} & \textbf{Limitations} & \textbf{Best next experiment}\\[-1pt]
-Original-resolution ORL; matched deterministic splits; full grids and assumptions documented. & Small, controlled dataset. The paper leaves seeds, scaling, equalization, singular-scatter handling, and selection details open. & Choose dimensions with gallery-only validation, test once on untouched data, then check another face dataset.\\
-\end{tabularx}
-\normalsize
-
-\newpage
-\section*{4 \; Efficient implementation and conclusions}
-Exhaustive dimension search repeats many operations shared by nearby row/column sizes. The corrected optimized sweep caches class groupings and reuses generalized eigensystem factorizations, then forms each requested-size projection using the same shape-specific multiplication as a direct fit. This targets scatter construction and eigendecomposition without changing the mathematical objective or update order.
-
-\begin{center}
 \small
-\begin{tabular}{lrr}
+\caption{Paper-reported MDA/2-2 scores and our five-repeat grid maxima (percent). Group maxima selected dimensions using the same probe scores, so they are optimistic diagnostics.}
+\label{tab:grid}
+\begin{tabular}{crrr}
 \toprule
-Implementation (14 workers, one Accelerate thread) & Throughput & Peak memory\\
+Gallery images/person & Paper Table I & Group, unit-L2 & Group, within-scatter\\
 \midrule
-Direct & 40.50 fits/s & 1.19 GiB\\
-\textbf{Corrected cached (default)} & \textbf{47.48 fits/s} & \textbf{0.91 GiB}\\
+2 & 90.1 & 61.81 & 62.44\\
+3 & 95.0 & 82.29 & 57.29\\
+4 & 98.3 & 90.75 & 77.92\\
+5 & 99.0 & 94.90 & 88.60\\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
-\smallcaps{Where the time goes}\quad Profile of 12 representative fits; most cost is in MDA fitting, not classification.
-\begin{figure}[H]
+The paper values are its selected best results \citep{Yan2007MDA}; our grid values use our own splits and implementation choices, so this is not a controlled like-for-like comparison. The paper omits the split seeds, exact preprocessing defaults, eigenvector scaling, singular-scatter treatment, and dimension-selection protocol. Although projections were gallery-only, selecting the best dimensions on probe accuracy reuses probe labels and inflates the reported maxima. A stronger estimate would tune dimensions using gallery-only validation and evaluate once on untouched outer probes.
+
+The within-scatter grid maximum dips from 62.44\% with two gallery images to 57.29\% with three. This dip is specific to probe-selected grid maxima: in a separate 30-split nested-gallery diagnostic with dimensions fixed at $6\times6$, adding a third gallery image raised mean accuracy from 34.57\% to 53.05\% for unit-L2 axes and from 5.47\% to 26.70\% for within-scatter axes. It is not evidence that more gallery images generally hurt recognition.
+
+\section{Efficient implementation and conclusions}
+Exhaustive searches repeat calculations shared across nearby dimension pairs. The corrected cached implementation reuses class groupings and generalized eigensystem factorizations, then forms each requested projection with the same shape-specific multiplication as the direct fit. It preserves the objective and update order.
+
+\begin{table}[H]
 \centering
-\begin{tikzpicture}
-\begin{axis}[
-  xbar,width=0.82\linewidth,height=4.0cm,
-  xmin=0,xmax=50,
-  ytick={4,3,2,1},
-  yticklabels={Scatter construction,Eigendecomposition,Other projection and iteration,1-NN classification},
-  xlabel={Share of MDA fit time (\%)},
-  tick label style={font=\scriptsize,color=Muted},
-  label style={font=\small,color=Ink},
-  axis line style={color=Muted},
-  xmajorgrids=true,major grid style={draw=Rule,line width=0.45pt},
-  nodes near coords, nodes near coords align={horizontal},
-  every node near coord/.append style={font=\scriptsize,color=Ink},
-  bar width=7pt,
-  clip=false
-]
-\addplot[fill=Teal,draw=Teal] coordinates {(43.6,4)(20.6,3)(35.8,2)(0.8,1)};
-\end{axis}
-\end{tikzpicture}
-\caption{Stage profile from 12 representative direct fits. Classification is below 1\% of fit-plus-classification time.}
-\end{figure}
-
-The optimized path was about 17\% faster in the measured 60-fit benchmark and used 0.28 GiB less peak memory. A previous cache variant changed a few ill-conditioned gallery-size-2 fits; after correction, the 17 flagged settings matched the direct path under both normalizations for predictions, accuracy, iteration counts, sign-aligned projections, distances, and objectives. This is targeted validation, not an exhaustive pair-by-pair numerical comparison. The completed direct-run grids remain the canonical dataset; optimized code is the default for future sweeps.
-
-\begin{warmbox}
-\smallcaps{Runtime claim}\quad 71 minutes is an extrapolation from 47.48 fits/s to one 202,600-fit grid, not a completed optimized rerun. The original complete grids and all checkpoints are preserved; no exhaustive rerun was necessary.
-\end{warmbox}
-
-\section*{Conclusion}
-On this fixed-setting ORL study, MDA/2-1 led the compared methods, while MDA/2-2 depended strongly on projection-axis normalization. The paper's best table was not numerically reproduced, and the available evidence does not isolate one cause: the article leaves several settings unspecified, and the group's grid maxima use probe data for dimension selection. The contribution is a transparent, original-resolution implementation, a complete preserved experimental record, and a faster path with targeted numerical checks—not a claim that MDA is universally superior.
-
-\begin{softbox}
-\smallcaps{Code and reproducibility}\par\smallskip
-Source, run instructions, full grids, figures, and validation records:\par
-\href{https://github.com/Lavalx100/comp3314-mda-face-recognition-replication}{\texttt{github.com/Lavalx100/comp3314-mda-face-recognition-replication}}.
-\end{softbox}
-
-\vspace{-1mm}
-\begin{thebibliography}{9}
-\setlength{\itemsep}{0.1em}
 \small
-\bibitem{Yan2007MDA} S. Yan, D. Xu, Q. Yang, L. Zhang, X. Tang, and H.-J. Zhang. Multilinear discriminant analysis for face recognition. \emph{IEEE Transactions on Image Processing}, 16(1):212--220, 2007. doi: \href{https://doi.org/10.1109/TIP.2006.884929}{10.1109/TIP.2006.884929}.
-\bibitem{ORL} AT\&T Laboratories Cambridge. The Database of Faces (ORL), 1992--1994. \url{https://cam-orl.co.uk/facedatabase.html}.
+\caption{M3 Max benchmark over 60 representative fits (14 workers, one Accelerate thread).}
+\label{tab:runtime}
+\begin{tabular}{lrr}
+\toprule
+Implementation & Fits/second & Peak memory\\
+\midrule
+Direct & 40.50 & 1.19 GiB\\
+\textbf{Corrected cached (default)} & \textbf{47.48} & \textbf{0.91 GiB}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The cached path was about 17\% faster and used 0.28 GiB less peak memory. In 17 targeted configurations flagged by an earlier cache variant, corrected direct and cached fits matched on predictions, accuracy, iteration counts, sign-aligned projections, distances, and objectives. This is targeted numerical validation, not an exhaustive pair-by-pair equivalence proof. Profiling attributed 43.6\% of direct fit time to scatter construction, 20.6\% to eigendecomposition, 35.8\% to projection and iteration, and 0.8\% to classification. The 71-minute estimate for a 202,600-fit grid is extrapolated from the representative batch, not a completed optimized rerun. The complete direct-run grids and checkpoints remain canonical; the optimized path is the default for future sweeps.
+
+Our ORL study found MDA/2-1 strongest at fixed settings, while MDA/2-2 depended strongly on projection scaling. We did not numerically reproduce the paper's selected scores, and its unspecified settings prevent attributing the gap to one cause. The contribution is a transparent original-resolution reproduction, explicit limitations, preserved full-grid evidence, and a more efficient validated implementation.
+
+\noindent\textbf{Reproducibility.} Code, run instructions, full grids, visualizations, and validation records are in the public \href{https://github.com/Lavalx100/comp3314-mda-face-recognition-replication}{Group 27 GitHub repository}. ORL face images are not redistributed.
+
+\clearpage
+\begin{thebibliography}{9}
+\small
+\bibitem[Yan et al.(2007)]{Yan2007MDA} S. Yan, D. Xu, Q. Yang, L. Zhang, X. Tang, and H.-J. Zhang. Multilinear discriminant analysis for face recognition. \emph{IEEE Transactions on Image Processing}, 16(1):212--220, 2007. doi: \href{https://doi.org/10.1109/TIP.2006.884929}{10.1109/TIP.2006.884929}.
+\bibitem[Cambridge (1992--1994)]{ORL} AT\&T Laboratories Cambridge. The Database of Faces (ORL), 1992--1994. \url{https://cam-orl.co.uk/facedatabase.html}.
 \end{thebibliography}
 
 \end{document}

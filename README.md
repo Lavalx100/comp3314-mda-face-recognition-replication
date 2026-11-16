@@ -8,7 +8,11 @@ This is the working research repository for COMP3314 Group 27's study of Yan et 
 
 ## Featured project video
 
-[▶ Play the 29.5-second landscape MDA system animation in your browser](https://mda-face-recognition-video.laval.chatgpt.site/) · [download the MP4](output/video/Group27_MDA_Process_Explainer.mp4). It visualizes the gallery/probe split, mode-wise projections, nearest-neighbour recognition, the fixed-setting results, and the study's limitations.
+[▶ Play the 29.5-second landscape MDA system animation in your browser](https://jadkhiami.me/videocomp3314) · [download the MP4](output/video/Group27_MDA_Process_Explainer.mp4). It visualizes the gallery/probe split, mode-wise projections, nearest-neighbour recognition, the fixed-setting results, and the study's limitations.
+
+## Final report submission
+
+[Download the PDF report](output/pdf/Group27.pdf). It uses the official NeurIPS 2026 style with the preprint option, names all four authors with their shared University of Hong Kong affiliation, and keeps the main text within four pages. The public repository link and the live project-video page are included in the PDF.
 
 **GitHub:** [public working repository](https://github.com/Lavalx100/comp3314-mda-face-recognition-replication).
 
@@ -102,15 +106,16 @@ docs/paper-notes.md        Paper summary and original ORL comparison values
 docs/experiments/          Dated experiment records and handoff notes
 docs/PROGRESS.md           Status, completed work, and next steps
 docs/CHANGELOG.md          Human-readable project change history
-report/main.tex            Current original-resolution study report source
+report/Group27_MDA_Final_Report.tex  Final report source in NeurIPS 2026 preprint style
+report/neurips_2026.sty    Official NeurIPS 2026 style file used to build the report
 slides/                    Editable final presentation, run-of-show outline, and Q&A prep
-output/pdf/                Presentation PDF and rendered research report
+output/pdf/                Final report and presentation PDFs
 archive/presentation/      Previous presentation version, retained for history
 site/index.html            Local research overview, plan, results, and team roles
 hpc/                       Optional HKU HPC2021 CPU SLURM setup (not submitted)
 ```
 
-The report source now reflects the original-resolution protocol, fixed-setting results, full-grid comparison, leakage limitation, and validated optimization. Both full-grid heatmaps are regenerated from their canonical summaries and correctly label their normalization. The rendered report is in `output/pdf/`.
+The final report reflects the original-resolution protocol, fixed-setting results, full-grid comparison, leakage limitation, and validated optimization. Its main text is at most four pages; references follow separately. Both full-grid heatmaps are regenerated from their canonical summaries and correctly label their normalization.
 
 ## Corrected paper-proximate fixed-setting results
 
