@@ -8,7 +8,7 @@ This is the working research repository for COMP3314 Group 27's study of Yan et 
 
 ## Featured project video
 
-[▶ Play the 29.5-second landscape MDA system animation in your browser](https://lavalx100.github.io/comp3314-mda-face-recognition-replication/) · [download the MP4](output/video/Group27_MDA_Process_Explainer.mp4). It visualizes the gallery/probe split, mode-wise projections, nearest-neighbour recognition, the fixed-setting results, and the study's limitations.
+[▶ Play the 29.5-second landscape MDA system animation in your browser](https://mda-face-recognition-video.laval.chatgpt.site/) · [download the MP4](output/video/Group27_MDA_Process_Explainer.mp4). It visualizes the gallery/probe split, mode-wise projections, nearest-neighbour recognition, the fixed-setting results, and the study's limitations.
 
 **GitHub:** [public working repository](https://github.com/Lavalx100/comp3314-mda-face-recognition-replication).
 
