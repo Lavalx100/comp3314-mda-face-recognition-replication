@@ -288,8 +288,8 @@ def draw_scene_4(canvas: Image.Image, draw: ImageDraw.ImageDraw, t: float) -> No
 
 def draw_scene_5(canvas: Image.Image, draw: ImageDraw.ImageDraw, t: float) -> None:
     label(draw, (150, 180), "Recognition step", TEAL)
-    draw.text((145, 238), "Each probe asks: which gallery feature is closest?", font=F_TITLE_SMALL, fill=INK)
-    draw.text((150, 330), "Project the held-out face, then compare it with the labelled gallery.", font=F_SUBTITLE, fill=MUTED)
+    draw.text((145, 238), "Match each probe to its closest gallery face.", font=F_TITLE_SMALL, fill=INK)
+    draw.text((150, 330), "Compare projected faces, then use the closest gallery identity.", font=F_SUBTITLE, fill=MUTED)
 
     x0, y0, x1, y1 = 270, 825, 1510, 420
     draw.line((x0, y0, x1, y0), fill=(91, 109, 116), width=2)
@@ -312,15 +312,18 @@ def draw_scene_5(canvas: Image.Image, draw: ImageDraw.ImageDraw, t: float) -> No
                 b = min((k + 1) / steps, 1)
                 draw.line(((query[0] + a * dx, query[1] + a * dy), (query[0] + b * dx, query[1] + b * dy)), fill=(67, 81, 88), width=2)
         draw.ellipse((gx - 17, gy - 17, gx + 17, gy + 17), fill=color)
-        draw.text((gx + 25, gy - 22), f"gallery {name}", font=F_SMALL, fill=INK)
+        if name == "A":
+            draw.text((gx - 112, gy + 24), f"gallery {name}", font=F_SMALL, fill=INK)
+        else:
+            draw.text((gx + 25, gy - 22), f"gallery {name}", font=F_SMALL, fill=INK)
     draw.ellipse((query[0] - 16, query[1] - 16, query[0] + 16, query[1] + 16), fill=INK, outline=RUST, width=5)
-    draw.text((query[0] - 28, query[1] - 55), "probe", font=F_SMALL, fill=RUST)
+    draw.text((query[0] + 18, query[1] - 52), "probe", font=F_SMALL, fill=RUST)
     if t > 2.0:
         draw.ellipse((gallery[0][0][0] - 30, gallery[0][0][1] - 30, gallery[0][0][0] + 30, gallery[0][0][1] + 30), outline=INK, width=3)
 
-    round_box(draw, (1550, 455, 1780, 760), PANEL)
-    label(draw, (1582, 490), "1-NN", TEAL)
-    paragraph(draw, (1582, 545), "Choose the nearest gallery face; use its identity label.", F_BODY, INK, 165, 10)
+    round_box(draw, (1535, 455, 1785, 790), PANEL)
+    label(draw, (1562, 490), "1-NN", TEAL)
+    paragraph(draw, (1562, 545), "Choose the nearest gallery face; use its identity label.", F_BODY, INK, 195, 8)
     draw.text((300, 900), "Euclidean distance in the projected feature space · diagram is illustrative", font=F_SMALL, fill=MUTED)
 
 

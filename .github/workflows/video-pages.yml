@@ -1,0 +1,44 @@
+name: Deploy MDA video player
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/video-pages.yml"
+      - "video/player/**"
+      - "output/video/Group27_MDA_Process_Explainer.mp4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the project
+        uses: actions/checkout@v4
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Prepare the player site
+        run: |
+          mkdir -p _site
+          cp video/player/index.html _site/index.html
+          cp video/player/poster.jpg _site/poster.jpg
+          cp output/video/Group27_MDA_Process_Explainer.mp4 _site/Group27_MDA_Process_Explainer.mp4
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
