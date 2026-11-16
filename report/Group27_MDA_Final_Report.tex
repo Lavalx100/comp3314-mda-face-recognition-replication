@@ -39,6 +39,7 @@ The University of Hong Kong\\
 COMP3314 Group 27}
 
 \begin{document}
+\newgeometry{left=0.7in,right=0.7in,top=0.62in,bottom=0.62in,headheight=12pt,headsep=18pt,footskip=24pt}
 \maketitle
 
 \begin{abstract}
@@ -102,6 +103,30 @@ MDA/2-2, within-scatter & $5.4\pm1.9$ & $23.9\pm10.3$ & $64.0\pm6.0$ & $81.4\pm3
 
 MDA/2-1 was strongest in every fixed setting. MDA/2-2 varied sharply with axis normalization, showing that the learned feature metric, and not only the retained subspace, affects nearest-neighbour classification.
 
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.96\linewidth,height=5.0cm,
+  xmin=1.8,xmax=5.2,ymin=0,ymax=100,
+  xtick={2,3,4,5},ytick={0,20,40,60,80,100},
+  xlabel={Gallery images per identity},ylabel={Probe accuracy (\%)},
+  tick label style={font=\scriptsize},label style={font=\small},
+  axis line style={black!55},grid=major,major grid style={black!12},
+  legend style={draw=none,fill=none,font=\scriptsize,at={(0.5,-0.22)},anchor=north,legend columns=3,column sep=7pt},
+  clip=false
+]
+\addplot+[color=MDAblue,mark=*,line width=1pt,error bars/.cd,y dir=both,y explicit] coordinates {(2,73.9) +- (0,2.5) (3,84.1) +- (0,1.8) (4,88.2) +- (0,3.0) (5,91.6) +- (0,2.0)};\addlegendentry{PCA}
+\addplot+[color=black!65,mark=square*,line width=1pt,error bars/.cd,y dir=both,y explicit] coordinates {(2,73.1) +- (0,2.8) (3,84.9) +- (0,2.9) (4,88.0) +- (0,2.4) (5,90.4) +- (0,2.2)};\addlegendentry{Fisherfaces}
+\addplot+[color=MDAteal,mark=triangle*,line width=1.1pt,error bars/.cd,y dir=both,y explicit] coordinates {(2,81.4) +- (0,3.0) (3,89.9) +- (0,2.2) (4,92.0) +- (0,2.2) (5,94.7) +- (0,1.7)};\addlegendentry{MDA/2-1}
+\addplot+[color=MDArust,mark=*,line width=1pt,error bars/.cd,y dir=both,y explicit] coordinates {(2,34.8) +- (0,5.3) (3,52.6) +- (0,5.6) (4,75.8) +- (0,3.6) (5,87.5) +- (0,2.8)};\addlegendentry{MDA/2-2 unit-L2}
+\addplot+[color=MDAgold,mark=square*,line width=1pt,error bars/.cd,y dir=both,y explicit] coordinates {(2,5.4) +- (0,1.9) (3,23.9) +- (0,10.3) (4,64.0) +- (0,6.0) (5,81.4) +- (0,3.8)};\addlegendentry{MDA/2-2 within-scatter}
+\end{axis}
+\end{tikzpicture}
+\caption{Fixed-setting accuracy from Table~\ref{tab:fixed}. Error bars show sample standard deviation across the same 30 matched splits.}
+\label{fig:fixed-results}
+\end{figure}
+
 \begin{table}[H]
 \centering
 \small
@@ -118,6 +143,28 @@ Gallery images/person & Paper Table I & Group, unit-L2 & Group, within-scatter\\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.94\linewidth,height=4.7cm,
+  xmin=1.8,xmax=5.2,ymin=45,ymax=101,
+  xtick={2,3,4,5},ytick={50,60,70,80,90,100},
+  xlabel={Gallery images per identity},ylabel={Selected mean accuracy (\%)},
+  tick label style={font=\scriptsize},label style={font=\small},
+  axis line style={black!55},grid=major,major grid style={black!12},
+  legend style={draw=none,fill=none,font=\scriptsize,at={(0.5,-0.22)},anchor=north,legend columns=3,column sep=7pt},
+  clip=false
+]
+\addplot+[color=black!70,mark=diamond*,line width=1pt,densely dashed] coordinates {(2,90.1)(3,95.0)(4,98.3)(5,99.0)};\addlegendentry{Paper Table I}
+\addplot+[color=MDArust,mark=*,line width=1.1pt] coordinates {(2,61.81)(3,82.29)(4,90.75)(5,94.90)};\addlegendentry{Group, unit-L2}
+\addplot+[color=MDAgold,mark=square*,line width=1.1pt] coordinates {(2,62.44)(3,57.29)(4,77.92)(5,88.60)};\addlegendentry{Group, within-scatter}
+\end{axis}
+\end{tikzpicture}
+\caption{Paper-reported selected scores versus our probe-selected grid maxima. The group maxima are optimistic diagnostics, not unbiased test estimates.}
+\label{fig:grid-results}
+\end{figure}
 
 The paper values are its selected best results \citep{Yan2007MDA}; our grid values use our own splits and implementation choices, so this is not a controlled like-for-like comparison. The paper omits the split seeds, exact preprocessing defaults, eigenvector scaling, singular-scatter treatment, and dimension-selection protocol. Although projections were gallery-only, selecting the best dimensions on probe accuracy reuses probe labels and inflates the reported maxima. A stronger estimate would tune dimensions using gallery-only validation and evaluate once on untouched outer probes.
 
@@ -143,11 +190,31 @@ Direct & 40.50 & 1.19 GiB\\
 
 The cached path was about 17\% faster and used 0.28 GiB less peak memory. In 17 targeted configurations flagged by an earlier cache variant, corrected direct and cached fits matched on predictions, accuracy, iteration counts, sign-aligned projections, distances, and objectives. This is targeted numerical validation, not an exhaustive pair-by-pair equivalence proof. Profiling attributed 43.6\% of direct fit time to scatter construction, 20.6\% to eigendecomposition, 35.8\% to projection and iteration, and 0.8\% to classification. The 71-minute estimate for a 202,600-fit grid is extrapolated from the representative batch, not a completed optimized rerun. The complete direct-run grids and checkpoints remain canonical; the optimized path is the default for future sweeps.
 
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar,width=0.88\linewidth,height=3.7cm,
+  xmin=0,xmax=50,
+  ytick={4,3,2,1},
+  yticklabels={Scatter construction,Eigendecomposition,Projection and iteration,1-NN classification},
+  xlabel={Share of direct MDA fit time (\%)},
+  tick label style={font=\scriptsize},label style={font=\small},
+  axis line style={black!55},xmajorgrids=true,major grid style={black!12},
+  nodes near coords,nodes near coords align={horizontal},
+  every node near coord/.append style={font=\scriptsize},bar width=7pt,clip=false
+]
+\addplot[fill=MDAteal,draw=MDAteal] coordinates {(43.6,4)(20.6,3)(35.8,2)(0.8,1)};
+\end{axis}
+\end{tikzpicture}
+\caption{Stage profile from 12 representative direct fits. Classification accounts for less than 1\% of fit-plus-classification time.}
+\label{fig:profile}
+\end{figure}
+
 Our ORL study found MDA/2-1 strongest at fixed settings, while MDA/2-2 depended strongly on projection scaling. We did not numerically reproduce the paper's selected scores, and its unspecified settings prevent attributing the gap to one cause. The contribution is a transparent original-resolution reproduction, explicit limitations, preserved full-grid evidence, and a more efficient validated implementation.
 
 \noindent\textbf{Reproducibility.} Code, run instructions, full grids, visualizations, and validation records are in the public \href{https://github.com/Lavalx100/comp3314-mda-face-recognition-replication}{Group 27 GitHub repository}. ORL face images are not redistributed.
 
-\clearpage
 \begin{thebibliography}{9}
 \small
 \bibitem[Yan et al.(2007)]{Yan2007MDA} S. Yan, D. Xu, Q. Yang, L. Zhang, X. Tang, and H.-J. Zhang. Multilinear discriminant analysis for face recognition. \emph{IEEE Transactions on Image Processing}, 16(1):212--220, 2007. doi: \href{https://doi.org/10.1109/TIP.2006.884929}{10.1109/TIP.2006.884929}.
