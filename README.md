@@ -6,6 +6,10 @@ This is the working research repository for COMP3314 Group 27's study of Yan et 
 
 **Final presentation (2026-11-14):** [editable PowerPoint](slides/Group27_MDA_Final_Presentation.pptx) · [PDF](output/pdf/Group27_MDA_Final_Presentation.pdf). The submission copy has no slide comments or speaker notes.
 
+## Featured project video
+
+[▶ Watch the 29.5-second landscape MDA system animation](output/video/Group27_MDA_Process_Explainer.mp4) (MP4, 1920 × 1080). It visualizes the gallery/probe split, mode-wise projections, nearest-neighbour recognition, the fixed-setting results, and the study's limitations.
+
 **GitHub:** [public working repository](https://github.com/Lavalx100/comp3314-mda-face-recognition-replication).
 
 ## Research question
@@ -204,7 +208,7 @@ The original five-split exploratory run remains preserved separately at `results
 - Learned projections use training data only; test examples are used only for evaluation.
 - Dataset cache and raw face archive are excluded from version control. Cite AT&T Laboratories Cambridge and scikit-learn's loader documentation.
 - Record each new experiment under `docs/experiments/` with command, configuration, seed policy, output paths, interpretation, and limitations before changing the headline result.
-- The course brief asks for a public GitHub repository for code submitted for reproduction bonus consideration. Keep this working repository private until the group reviews its contents and explicitly decides whether to publish it.
+- This repository is public for the course's reproduction bonus. The raw face archive remains excluded from version control; see [data and ethics notes](docs/data-and-ethics.md).
 
 ## References
 
